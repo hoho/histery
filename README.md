@@ -1,4 +1,4 @@
-histery
-=======
+Histery.js
+==========
 
-Histery.js is a single page app history handler
+Single page app history handler
