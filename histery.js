@@ -33,6 +33,8 @@ var $H = (function(window, location, undefined) {
             while ((tmp = pending.shift())) {
                 tmp(error);
             }
+
+            return $H;
         },
 
         getFullURI = function(href/**/, l) {
@@ -212,7 +214,7 @@ var $H = (function(window, location, undefined) {
                     }
 
                     if (val.length) {
-                        return;
+                        return $H;
                     }
                 }
 
