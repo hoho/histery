@@ -16,7 +16,8 @@ var $H = (function(window, location, undefined) {
         pageId = 0,
         waitCount,
         currentCallbacks,
-        goesToRun,
+        goCallbacks,
+        processed,
 
         isExpr = function(hrefOrExpr) {
             return hrefOrExpr instanceof RegExp;
@@ -34,8 +35,13 @@ var $H = (function(window, location, undefined) {
             }
         },
 
-        getCurrentURI = function() {
-            return location.pathname + location.search + ((location.hash.length > 1) ? location.hash : '');
+        getFullURI = function(href/**/, l) {
+            l = location;
+            if (href) {
+                l = document.createElement('a');
+                l.href = href;
+            }
+            return l.pathname + l.search + ((l.hash.length > 1) ? l.hash : '');
         },
 
         callDoneCallbacks = function(/**/callbacks, j) {
@@ -56,20 +62,18 @@ var $H = (function(window, location, undefined) {
 
     return {
         run: function() {
-            $H.go(getCurrentURI());
-            $(window).on('popstate hashchange', function(e) {
-                if (e.type === 'popstate') {
-                    e = e.originalEvent;
-                    e = e && e.state;
-                    e = e && e.js;
-                } else {
-                    e = true;
-                }
-                if (e) {
-                    nopush = true;
-                    $H.go(getCurrentURI());
-                }
-            });
+            $(window)
+                .on('popstate hashchange',
+                    function() {
+                        if (!processed) {
+                            processed = nopush = true;
+                            $H.go();
+                            window.setTimeout(function() {
+                                processed = undefined;
+                            }, 0);
+                        }
+                    })
+                .trigger('popstate');
         },
 
         stop: stop,
@@ -77,24 +81,9 @@ var $H = (function(window, location, undefined) {
         go: function(href) {
             stop();
 
-            if (initialized) {
-                if (history.pushState) {
-                    if (!nopush) {
-                        history.pushState({js: true}, null, href);
-                        href = getCurrentURI();
-                    }
-                    nopush = false;
-                } else {
-                    location.href = href;
-                }
-            } else {
-                if (history.replaceState) {
-                    history.replaceState({js: true}, null, getCurrentURI());
-                }
-                initialized = true;
-            }
+            href = getFullURI(href);
 
-            goesToRun = [];
+            goCallbacks = [];
 
             for (key in routes) {
                 val = routes[key];
@@ -150,23 +139,39 @@ var $H = (function(window, location, undefined) {
                         for (j = 0; j < callbacks.length; j++) {
                             if ((callback = callbacks[j].go)) {
                                 waitCount++;
-                                goesToRun.push([callback, getDoneCallback(j)]);
+                                goCallbacks.push([callback, getDoneCallback(j)]);
                             }
                         }
                     })((currentCallbacks[++pageId] = {c: val.c, d: [], a: args}), pageId);
                 }
             }
 
+            if (!pending.length) {
+                $.error('No matches for "' + href + '"');
+            }
+
+            if (initialized) {
+                if (history.pushState) {
+                    if (!nopush) {
+                        history.pushState(null, null, href);
+                    }
+                    nopush = false;
+                } else {
+                    location.href = href;
+                }
+            }
+
+            initialized = true;
+
             if (waitCount) {
-                for (i = 0; i < goesToRun.length; i++) {
-                    tmp = goesToRun[i];
+                for (i = 0; i < goCallbacks.length; i++) {
+                    tmp = goCallbacks[i];
                     args[0] = tmp[1];
                     tmp[0].apply(window, args);
                 }
             } else {
                 callDoneCallbacks();
             }
-
         },
 
         on: function(hrefOrExpr, callbacks) {
