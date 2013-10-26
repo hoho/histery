@@ -14,6 +14,9 @@ var $H = (function(window, location, undefined) {
         initialized,
         nopush,
         pageId = 0,
+        waitCount,
+        currentCallbacks,
+        goesToRun,
 
         isExpr = function(hrefOrExpr) {
             return hrefOrExpr instanceof RegExp;
@@ -24,6 +27,8 @@ var $H = (function(window, location, undefined) {
         },
 
         stop = function(error) {
+            waitCount = 0;
+            currentCallbacks = {};
             while ((tmp = pending.shift())) {
                 tmp(error);
             }
@@ -31,6 +36,22 @@ var $H = (function(window, location, undefined) {
 
         getCurrentURI = function() {
             return location.pathname + location.search + ((location.hash.length > 1) ? location.hash : '');
+        },
+
+        callDoneCallbacks = function(/**/callbacks, j) {
+            for (key in currentCallbacks) {
+                val = currentCallbacks[key];
+                callbacks = val.c;
+                args = val.a;
+
+                for (j = 0; j < callbacks.length; j++) {
+                    if ((tmp = callbacks[j].done)) {
+                        args[0] = val.d[j];
+                        tmp.apply(window, args);
+                    }
+                }
+            }
+            pending = [];
         };
 
     return {
@@ -68,6 +89,8 @@ var $H = (function(window, location, undefined) {
                 initialized = true;
             }
 
+            goesToRun = [];
+
             for (key in routes) {
                 val = routes[key];
 
@@ -88,12 +111,11 @@ var $H = (function(window, location, undefined) {
                 args.unshift(undefined);
 
                 if (i === 1 && !tmp) {
-                    (function(callbacks, args, curPageId) {
+                    (function(meta, curPageId) {
                         var j,
+                            callbacks = meta.c,
                             callback,
-                            waitCount = 0,
-                            doneDatas = [],
-                            goes = [],
+                            args = meta.a,
                             getDoneCallback = function(callbackIndex) {
                                 return function(data, error) {
                                     if (waitCount > 0) {
@@ -101,15 +123,9 @@ var $H = (function(window, location, undefined) {
                                             waitCount = 0;
                                             stop(error);
                                         } else {
-                                            doneDatas[callbackIndex] = data;
-                                            if (--waitCount === 0 && pageId === curPageId) {
-                                                for (j = 0; j < callbacks.length; j++) {
-                                                    if ((callback = callbacks[j].done)) {
-                                                        args[0] = doneDatas[j];
-                                                        callback.apply(window, args);
-                                                    }
-                                                }
-                                                pending = [];
+                                            meta.d[callbackIndex] = data;
+                                            if (meta === currentCallbacks[curPageId] && --waitCount === 0) {
+                                                callDoneCallbacks();
                                             }
                                         }
                                     }
@@ -128,23 +144,23 @@ var $H = (function(window, location, undefined) {
                         for (j = 0; j < callbacks.length; j++) {
                             if ((callback = callbacks[j].go)) {
                                 waitCount++;
-                                goes.push([callback, getDoneCallback(j)]);
+                                goesToRun.push([callback, getDoneCallback(j)]);
                             }
                         }
-
-                        if (waitCount) {
-                            for (j = 0; j < goes.length; j++) {
-                                callback = goes[j];
-                                args[0] = callback[1];
-                                callback[0].apply(window, args);
-                            }
-                        } else {
-                            waitCount = 1;
-                            getDoneCallback(0)();
-                        }
-                    })(val.c, args, ++pageId);
+                    })((currentCallbacks[++pageId] = {c: val.c, d: [], a: args}), pageId);
                 }
             }
+
+            if (waitCount) {
+                for (i = 0; i < goesToRun.length; i++) {
+                    tmp = goesToRun[i];
+                    args[0] = tmp[1];
+                    tmp[0].apply(window, args);
+                }
+            } else {
+                callDoneCallbacks();
+            }
+
         },
 
         on: function(hrefOrExpr, callbacks) {
