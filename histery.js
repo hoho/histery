@@ -74,6 +74,8 @@ var $H = (function(window, location, undefined) {
                         }
                     })
                 .trigger('popstate');
+
+            return $H;
         },
 
         stop: stop,
@@ -173,6 +175,8 @@ var $H = (function(window, location, undefined) {
             } else {
                 callDoneCallbacks();
             }
+
+            return $H;
         },
 
         on: function(hrefOrExpr, callbacks) {
@@ -185,6 +189,8 @@ var $H = (function(window, location, undefined) {
             } else {
                 routes[key] = {h: hrefOrExpr, c: [callbacks]};
             }
+
+            return $H;
         },
 
         off: function(hrefOrExpr, callbacks) {
@@ -212,6 +218,8 @@ var $H = (function(window, location, undefined) {
 
                 delete routes[key];
             }
+
+            return $H;
         }
     };
 })(window, location);
