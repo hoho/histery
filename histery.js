@@ -57,10 +57,15 @@ var $H = (function(window, location, undefined) {
     return {
         run: function() {
             $H.go(getCurrentURI());
-            $(window).on('popstate', function(e) {
-                e = e.originalEvent;
-                e = e && e.state;
-                if (e && e.js) {
+            $(window).on('popstate hashchange', function(e) {
+                if (e.type === 'popstate') {
+                    e = e.originalEvent;
+                    e = e && e.state;
+                    e = e && e.js;
+                } else {
+                    e = true;
+                }
+                if (e) {
                     nopush = true;
                     $H.go(getCurrentURI());
                 }
