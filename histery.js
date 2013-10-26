@@ -116,6 +116,7 @@ var $H = (function(window, location, undefined) {
                                     if (waitCount > 0) {
                                         if (error) {
                                             waitCount = 0;
+                                            goCallbacks = [];
                                             stop(error);
                                         } else {
                                             meta.d[callbackIndex] = data;
@@ -164,8 +165,7 @@ var $H = (function(window, location, undefined) {
             nopush = false;
 
             if (waitCount) {
-                for (i = 0; i < goCallbacks.length; i++) {
-                    tmp = goCallbacks[i];
+                while ((tmp = goCallbacks.shift())) {
                     args = tmp[1];
                     args[0] = tmp[2];
                     tmp[0].apply(window, args);
