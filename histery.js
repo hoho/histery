@@ -108,9 +108,10 @@ var $H = (function(window, location, undefined) {
                     args = [href];
                 }
 
-                args.unshift(undefined);
 
                 if (i === 1 && !tmp) {
+                    args.unshift(undefined);
+
                     (function(meta, curPageId) {
                         var j,
                             callbacks = meta.c,
