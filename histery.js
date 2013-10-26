@@ -139,7 +139,7 @@ var $H = (function(window, location, undefined) {
                         for (j = 0; j < callbacks.length; j++) {
                             if ((callback = callbacks[j].go)) {
                                 waitCount++;
-                                goCallbacks.push([callback, getDoneCallback(j)]);
+                                goCallbacks.push([callback, args, getDoneCallback(j)]);
                             }
                         }
                     })((currentCallbacks[++pageId] = {c: val.c, d: [], a: args}), pageId);
@@ -166,7 +166,8 @@ var $H = (function(window, location, undefined) {
             if (waitCount) {
                 for (i = 0; i < goCallbacks.length; i++) {
                     tmp = goCallbacks[i];
-                    args[0] = tmp[1];
+                    args = tmp[1];
+                    args[0] = tmp[2];
                     tmp[0].apply(window, args);
                 }
             } else {
