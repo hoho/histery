@@ -155,13 +155,13 @@ var $H = (function(window, location, undefined) {
                     if (!nopush) {
                         history.pushState(null, null, href);
                     }
-                    nopush = false;
                 } else {
                     location.href = href;
                 }
             }
 
             initialized = true;
+            nopush = false;
 
             if (waitCount) {
                 for (i = 0; i < goCallbacks.length; i++) {
