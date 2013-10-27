@@ -51,6 +51,7 @@ var $H = (function(window, location, undefined) {
                 val = currentCallbacks[key];
                 callbacks = val.c;
                 args = val.a;
+                args.unshift(undefined);
 
                 for (j = 0; j < callbacks.length; j++) {
                     if ((tmp = callbacks[j].done)) {
@@ -108,8 +109,6 @@ var $H = (function(window, location, undefined) {
 
 
                 if (i === 1 && !tmp) {
-                    args.unshift(undefined);
-
                     (function(meta, curPageId) {
                         var j,
                             callbacks = meta.c,
@@ -117,14 +116,14 @@ var $H = (function(window, location, undefined) {
                             args = meta.a,
                             getDoneCallback = function(callbackIndex) {
                                 return function(data, error) {
-                                    if (waitCount > 0) {
+                                    if (waitCount > 0 && meta === currentCallbacks[curPageId]) {
                                         if (error) {
                                             waitCount = 0;
                                             goCallbacks = [];
                                             stop(error);
                                         } else {
                                             meta.d[callbackIndex] = data;
-                                            if (meta === currentCallbacks[curPageId] && --waitCount === 0) {
+                                            if (--waitCount === 0) {
                                                 callDoneCallbacks();
                                             }
                                         }
@@ -133,7 +132,7 @@ var $H = (function(window, location, undefined) {
                             };
 
                         pending.push(function(error) {
-                            args[0] = error;
+                            args.unshift(error);
                             for (j = 0; j < callbacks.length; j++) {
                                 if ((callback = callbacks[j].stop)) {
                                     callback.apply(window, args);
@@ -170,9 +169,19 @@ var $H = (function(window, location, undefined) {
 
             if (waitCount) {
                 while ((tmp = goCallbacks.shift())) {
-                    args = tmp[1];
-                    args[0] = tmp[2];
-                    tmp[0].apply(window, args);
+                    (function(callback, args, done) {
+                        tmp = callback.apply(window, args);
+                        if (tmp && tmp.promise) {
+                            tmp.then(
+                                function(data) { done(data); },
+                                function() { done(undefined, true); }
+                            );
+                        } else if (tmp) {
+                            done(tmp);
+                        } else {
+                            done(undefined, true);
+                        }
+                    }).apply(window, tmp);
                 }
             } else {
                 callDoneCallbacks();
