@@ -7,7 +7,7 @@ var $H = (function(window, location, undefined) {
         routes = {},
         pendingGo,
         pendingStop = [],
-        pendingEnd = [],
+        pendingComplete = [],
         key,
         val,
         i,
@@ -35,7 +35,7 @@ var $H = (function(window, location, undefined) {
                 tmp(error);
             }
 
-            while ((tmp = pendingEnd.shift())) {
+            while ((tmp = pendingComplete.shift())) {
                 tmp();
             }
 
@@ -51,7 +51,7 @@ var $H = (function(window, location, undefined) {
             return l.pathname + l.search + ((l.hash.length > 1) ? l.hash : '');
         },
 
-        callDoneCallbacks = function(/**/callbacks, j) {
+        callSuccessCallbacks = function(/**/callbacks, j) {
             for (key in currentCallbacks) {
                 val = currentCallbacks[key];
                 callbacks = val.c;
@@ -59,7 +59,7 @@ var $H = (function(window, location, undefined) {
                 args.unshift(undefined);
 
                 for (j = 0; j < callbacks.length; j++) {
-                    if ((tmp = callbacks[j].done)) {
+                    if ((tmp = callbacks[j].success)) {
                         args[0] = val.d[j];
                         tmp.apply(window, args);
                     }
@@ -68,7 +68,7 @@ var $H = (function(window, location, undefined) {
 
             pendingStop = [];
 
-            while ((tmp = pendingEnd.shift())) {
+            while ((tmp = pendingComplete.shift())) {
                 tmp();
             }
         };
@@ -124,7 +124,7 @@ var $H = (function(window, location, undefined) {
                             callbacks = meta.c,
                             callback,
                             args = meta.a,
-                            getDoneCallback = function(callbackIndex) {
+                            getSuccessCallback = function(callbackIndex) {
                                 return function(data, error) {
                                     if (waitCount > 0 && meta === currentCallbacks[curPageId]) {
                                         if (error) {
@@ -134,7 +134,7 @@ var $H = (function(window, location, undefined) {
                                         } else {
                                             meta.d[callbackIndex] = data;
                                             if (--waitCount === 0) {
-                                                callDoneCallbacks();
+                                                callSuccessCallbacks();
                                             }
                                         }
                                     }
@@ -150,10 +150,10 @@ var $H = (function(window, location, undefined) {
                             }
                         });
 
-                        pendingEnd.push(function() {
+                        pendingComplete.push(function() {
                             args.shift();
                             for (j = 0; j < callbacks.length; j++) {
-                                if ((callback = callbacks[j].end)) {
+                                if ((callback = callbacks[j].complete)) {
                                     callback.apply(window, args);
                                 }
                             }
@@ -162,7 +162,7 @@ var $H = (function(window, location, undefined) {
                         for (j = 0; j < callbacks.length; j++) {
                             if ((callback = callbacks[j].go)) {
                                 waitCount++;
-                                pendingGo.push([callback, args, getDoneCallback(j)]);
+                                pendingGo.push([callback, args, getSuccessCallback(j)]);
                             }
                         }
                     })((currentCallbacks[++pageId] = {c: val.c, d: [], a: args}), pageId);
@@ -188,22 +188,22 @@ var $H = (function(window, location, undefined) {
 
             if (waitCount) {
                 while ((tmp = pendingGo.shift())) {
-                    (function(callback, args, done) {
+                    (function(callback, args, success) {
                         tmp = callback.apply(window, args);
                         if (tmp && tmp.promise) {
                             tmp.then(
-                                function(data) { done(data); },
-                                function() { done(undefined, true); }
+                                function(data) { success(data); },
+                                function() { success(undefined, true); }
                             );
                         } else if (tmp) {
-                            done(tmp);
+                            success(tmp);
                         } else {
-                            done(undefined, true);
+                            success(undefined, true);
                         }
                     }).apply(window, tmp);
                 }
             } else {
-                callDoneCallbacks();
+                callSuccessCallbacks();
             }
 
             return $H;
@@ -211,9 +211,10 @@ var $H = (function(window, location, undefined) {
 
         on: function(hrefOrExpr, callbacks) {
             // callbacks should look like:
-            //     {go: function(doneCallback, href, ...) {},
-            //      done: function(data, href, ...) {},
-            //      stop: function(error, href, ...)}
+            //     {go: function(href, ...) {},
+            //      success: function(data, href, ...) {},
+            //      stop: function(error, href, ...),
+            //      complete: function(href) {}}
             if ((val = routes[(key = getRouteKey(hrefOrExpr))])) {
                 val.c.push(callbacks);
             } else {
