@@ -1,11 +1,13 @@
 /*!
- * Histery.js v0.0.0, https://github.com/hoho/histery
+ * Histery.js v0.0.0+, https://github.com/hoho/histery
  * (c) 2013 Marat Abdullin, MIT license
  */
 var $H = (function(window, location, undefined) {
     var history = window.history || {},
         routes = {},
-        pending = [],
+        pendingGo,
+        pendingStop = [],
+        pendingEnd = [],
         key,
         val,
         i,
@@ -16,7 +18,6 @@ var $H = (function(window, location, undefined) {
         pageId = 0,
         waitCount,
         currentCallbacks,
-        goCallbacks,
         processed,
 
         isExpr = function(hrefOrExpr) {
@@ -30,8 +31,12 @@ var $H = (function(window, location, undefined) {
         stop = function(error) {
             waitCount = 0;
             currentCallbacks = {};
-            while ((tmp = pending.shift())) {
+            while ((tmp = pendingStop.shift())) {
                 tmp(error);
+            }
+
+            while ((tmp = pendingEnd.shift())) {
+                tmp();
             }
 
             return $H;
@@ -60,7 +65,12 @@ var $H = (function(window, location, undefined) {
                     }
                 }
             }
-            pending = [];
+
+            pendingStop = [];
+
+            while ((tmp = pendingEnd.shift())) {
+                tmp();
+            }
         };
 
     return {
@@ -88,7 +98,7 @@ var $H = (function(window, location, undefined) {
 
             href = getFullURI(href);
 
-            goCallbacks = [];
+            pendingGo = [];
 
             for (key in routes) {
                 val = routes[key];
@@ -119,7 +129,7 @@ var $H = (function(window, location, undefined) {
                                     if (waitCount > 0 && meta === currentCallbacks[curPageId]) {
                                         if (error) {
                                             waitCount = 0;
-                                            goCallbacks = [];
+                                            pendingGo = [];
                                             stop(error);
                                         } else {
                                             meta.d[callbackIndex] = data;
@@ -131,7 +141,7 @@ var $H = (function(window, location, undefined) {
                                 }
                             };
 
-                        pending.push(function(error) {
+                        pendingStop.push(function(error) {
                             args.unshift(error);
                             for (j = 0; j < callbacks.length; j++) {
                                 if ((callback = callbacks[j].stop)) {
@@ -140,17 +150,26 @@ var $H = (function(window, location, undefined) {
                             }
                         });
 
+                        pendingEnd.push(function() {
+                            args.shift();
+                            for (j = 0; j < callbacks.length; j++) {
+                                if ((callback = callbacks[j].end)) {
+                                    callback.apply(window, args);
+                                }
+                            }
+                        });
+
                         for (j = 0; j < callbacks.length; j++) {
                             if ((callback = callbacks[j].go)) {
                                 waitCount++;
-                                goCallbacks.push([callback, args, getDoneCallback(j)]);
+                                pendingGo.push([callback, args, getDoneCallback(j)]);
                             }
                         }
                     })((currentCallbacks[++pageId] = {c: val.c, d: [], a: args}), pageId);
                 }
             }
 
-            if (!pending.length) {
+            if (!pendingStop.length) {
                 $.error('No matches for "' + href + '"');
             }
 
@@ -168,7 +187,7 @@ var $H = (function(window, location, undefined) {
             nopush = false;
 
             if (waitCount) {
-                while ((tmp = goCallbacks.shift())) {
+                while ((tmp = pendingGo.shift())) {
                     (function(callback, args, done) {
                         tmp = callback.apply(window, args);
                         if (tmp && tmp.promise) {
