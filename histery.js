@@ -1,9 +1,10 @@
 /*!
- * Histery.js v0.0.0+, https://github.com/hoho/histery
+ * Histery.js v0.0.1, https://github.com/hoho/histery
  * (c) 2013 Marat Abdullin, MIT license
  */
-var $H = (function(window, location, undefined) {
-    var history = window.history || {},
+(function(window, location, undefined) {
+    var $H,
+        history = window.history || {},
         routes = {},
         pendingGo,
         pendingStop = [],
@@ -19,13 +20,18 @@ var $H = (function(window, location, undefined) {
         waitCount,
         currentCallbacks,
         processed,
+        noMatchCallbacks = [],
 
-        isExpr = function(hrefOrExpr) {
-            return hrefOrExpr instanceof RegExp;
+        isExpr = function(hrefObj) {
+            return hrefObj instanceof RegExp;
         },
 
-        getRouteKey = function(hrefOrExpr) {
-            return (isExpr(hrefOrExpr) ? 'e' : 's') + hrefOrExpr;
+        getRouteKey = function(hrefObj) {
+            return hrefObj && (
+                $.isPlainObject(hrefObj) ?
+                    'm' + hrefObj.pathname + '|' + hrefObj.search + '|' + hrefObj.hash :
+                    ((isExpr(hrefObj) ? 'e' : 's') + hrefObj)
+            );
         },
 
         stop = function(error) {
@@ -51,7 +57,62 @@ var $H = (function(window, location, undefined) {
             return l.pathname + l.search + ((l.hash.length > 1) ? l.hash : '');
         },
 
-        callSuccessCallbacks = function(/**/callbacks, j) {
+        matchURIPart = function(part, matcher/**/, m, tmp, ret) {
+            if (isExpr(matcher)) {
+                m = 0;
+                tmp = part.replace(matcher, function() {
+                    m++;
+                    ret = Array.prototype.slice.call((ret = arguments), 1, ret.length - 2);
+                    return '';
+                });
+            } else if (part === matcher) {
+                m = 1;
+                ret = [];
+            }
+
+            if (m === 1 && !tmp) {
+                return ret;
+            }
+        },
+
+        matchURI = function(isObject, href, hrefObj/**/, pathname, search, hash) {
+            href.replace(/^([^?#]+)(?:\?([^#]*))?(?:#(.*))?$/, function(_, p, s, h) {
+                pathname = p;
+                search = s;
+                hash = h;
+            });
+
+            if (pathname) {
+                if (isObject) {
+                    pathname = matchURIPart(pathname, hrefObj.pathname);
+                    search = hrefObj.search && search ? matchURIPart(search, hrefObj.search) : [];
+                    hash = hrefObj.hash && hash ? matchURIPart(hash, hrefObj.hash) : [];
+                } else {
+                    pathname = matchURIPart(pathname, hrefObj);
+                    search = hash = [];
+                }
+
+                if (pathname && search && hash) {
+                    return [href].concat(pathname, search, hash);
+                }
+            }
+        },
+
+        removeArrayItem = function(arr, item/**/, i) {
+            i = 0;
+            while (i < arr.length) {
+                if (arr[i] === item) {
+                    arr.splice(i, 1);
+                } else {
+                    i++;
+                }
+            }
+        },
+
+        callSuccessCallbacks = function() {
+            var callbacks,
+                j;
+
             for (key in currentCallbacks) {
                 val = currentCallbacks[key];
                 callbacks = val.c;
@@ -73,7 +134,7 @@ var $H = (function(window, location, undefined) {
             }
         };
 
-    return {
+    window.$H = $H = {
         run: function() {
             $(window)
                 .on('popstate hashchange',
@@ -103,22 +164,7 @@ var $H = (function(window, location, undefined) {
             for (key in routes) {
                 val = routes[key];
 
-                i = 0;
-
-                if (key[0] === 'e') {
-                    tmp = href.replace(val.h, function() {
-                        i++;
-                        args = Array.prototype.slice.call((args = arguments), 0, args.length - 2);
-                        return '';
-                    });
-                } else if (val.h === href) {
-                    i = 1;
-                    tmp = undefined;
-                    args = [href];
-                }
-
-
-                if (i === 1 && !tmp) {
+                if ((args = matchURI(key[0] === 'm', href, val.h))) {
                     (function(meta, curPageId) {
                         var j,
                             callbacks = meta.c,
@@ -140,6 +186,10 @@ var $H = (function(window, location, undefined) {
                                     }
                                 }
                             };
+
+                        if ($.isFunction(callbacks)) {
+                            callbacks = callbacks();
+                        }
 
                         pendingStop.push(function(error) {
                             args.unshift(error);
@@ -170,7 +220,10 @@ var $H = (function(window, location, undefined) {
             }
 
             if (!pendingStop.length) {
-                $.error('No matches for "' + href + '"');
+                for (i = 0; i < noMatchCallbacks.length; i++) {
+                    noMatchCallbacks[i](href);
+                }
+                return $H;
             }
 
             if (initialized) {
@@ -209,38 +262,31 @@ var $H = (function(window, location, undefined) {
             return $H;
         },
 
-        on: function(hrefOrExpr, callbacks) {
+        on: function(hrefObj, callbacks) {
             // callbacks should look like:
             //     {go: function(href, ...) {},
             //      success: function(data, href, ...) {},
             //      stop: function(error, href, ...),
             //      complete: function(href) {}}
-            if ((val = routes[(key = getRouteKey(hrefOrExpr))])) {
+            if ((val = routes[(key = getRouteKey(hrefObj))])) {
                 val.c.push(callbacks);
-            } else {
-                routes[key] = {h: hrefOrExpr, c: [callbacks]};
+            } else if (key) {
+                routes[key] = {h: hrefObj, c: [callbacks]};
             }
 
             return $H;
         },
 
-        off: function(hrefOrExpr, callbacks) {
-            if (!hrefOrExpr) {
+        off: function(hrefObj, callbacks) {
+            if (!hrefObj) {
                 routes = {};
             }
 
-            if ((val = routes[(key = getRouteKey(hrefOrExpr))])) {
+            if ((val = routes[(key = getRouteKey(hrefObj))])) {
                 if (callbacks) {
                     val = val.c;
-                    i = 0;
 
-                    while (i < val.length) {
-                        if (val[i] === callbacks) {
-                            val.splice(i, 1);
-                        } else {
-                            i++;
-                        }
-                    }
+                    removeArrayItem(val, callbacks);
 
                     if (val.length) {
                         return $H;
@@ -250,6 +296,15 @@ var $H = (function(window, location, undefined) {
                 delete routes[key];
             }
 
+            return $H;
+        },
+
+        noMatch: function(callback, remove) {
+            if (remove) {
+                removeArrayItem(noMatchCallbacks, callback);
+            } else {
+                noMatchCallbacks.push(callback);
+            }
             return $H;
         }
     };
