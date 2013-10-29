@@ -1,5 +1,5 @@
 /*!
- * Histery.js v0.0.1, https://github.com/hoho/histery
+ * Histery.js v0.0.1+, https://github.com/hoho/histery
  * (c) 2013 Marat Abdullin, MIT license
  */
 (function(window, location, undefined) {
@@ -54,7 +54,8 @@
                 l = document.createElement('a');
                 l.href = href;
             }
-            return l.pathname + l.search + ((l.hash.length > 1) ? l.hash : '');
+            l = l.pathname + l.search + ((l.hash.length > 1) ? l.hash : '');
+            return l[0] === '/' ? l : ('/' + l);
         },
 
         matchURIPart = function(part, matcher/**/, m, tmp, ret) {
