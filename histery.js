@@ -61,7 +61,7 @@ var $H = (function(window, location, undefined) {
                 for (j = 0; j < callbacks.length; j++) {
                     if ((tmp = callbacks[j].success)) {
                         args[0] = val.d[j];
-                        tmp.apply(window, args);
+                        tmp.apply(callbacks[j], args);
                     }
                 }
             }
@@ -145,7 +145,7 @@ var $H = (function(window, location, undefined) {
                             args.unshift(error);
                             for (j = 0; j < callbacks.length; j++) {
                                 if ((callback = callbacks[j].stop)) {
-                                    callback.apply(window, args);
+                                    callback.apply(callbacks[j], args);
                                 }
                             }
                         });
@@ -154,7 +154,7 @@ var $H = (function(window, location, undefined) {
                             args.shift();
                             for (j = 0; j < callbacks.length; j++) {
                                 if ((callback = callbacks[j].complete)) {
-                                    callback.apply(window, args);
+                                    callback.apply(callbacks[j], args);
                                 }
                             }
                         });
@@ -162,7 +162,7 @@ var $H = (function(window, location, undefined) {
                         for (j = 0; j < callbacks.length; j++) {
                             if ((callback = callbacks[j].go)) {
                                 waitCount++;
-                                pendingGo.push([callback, args, getSuccessCallback(j)]);
+                                pendingGo.push([callback, args, getSuccessCallback(j), callbacks[j]]);
                             }
                         }
                     })((currentCallbacks[++pageId] = {c: val.c, d: [], a: args}), pageId);
@@ -188,8 +188,8 @@ var $H = (function(window, location, undefined) {
 
             if (waitCount) {
                 while ((tmp = pendingGo.shift())) {
-                    (function(callback, args, success) {
-                        tmp = callback.apply(window, args);
+                    (function(callback, args, success, context) {
+                        tmp = callback.apply(context, args);
                         if (tmp && tmp.promise) {
                             tmp.then(
                                 function(data) { success(data); },
