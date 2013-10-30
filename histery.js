@@ -55,6 +55,7 @@
                 l.href = href;
             }
             l = l.pathname + l.search + ((l.hash.length > 1) ? l.hash : '');
+            // IE doesn't supply <a> tag pathname with leading slash.
             return l[0] === '/' ? l : ('/' + l);
         },
 
