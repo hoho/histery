@@ -1,5 +1,5 @@
 /*!
- * Histery.js v0.0.1+, https://github.com/hoho/histery
+ * Histery.js v0.0.2, https://github.com/hoho/histery
  * (c) 2013 Marat Abdullin, MIT license
  */
 (function(window, location, undefined) {
@@ -8,17 +8,15 @@
         routes = {},
         pendingGo,
         pendingStop = [],
+        pendingSuccess = [],
         pendingComplete = [],
         key,
         val,
-        i,
-        args,
         tmp,
         initialized,
         nopush,
         pageId = 0,
         waitCount,
-        currentCallbacks,
         processed,
         noMatchCallbacks = [],
 
@@ -32,20 +30,6 @@
                     'm' + hrefObj.pathname + '|' + hrefObj.search + '|' + hrefObj.hash :
                     ((isExpr(hrefObj) ? 'e' : 's') + hrefObj)
             );
-        },
-
-        stop = function(error) {
-            waitCount = 0;
-            currentCallbacks = {};
-            while ((tmp = pendingStop.shift())) {
-                tmp(error);
-            }
-
-            while ((tmp = pendingComplete.shift())) {
-                tmp();
-            }
-
-            return $H;
         },
 
         getFullURI = function(href/**/, l) {
@@ -111,29 +95,26 @@
             }
         },
 
-        callSuccessCallbacks = function() {
-            var callbacks,
-                j;
-
-            for (key in currentCallbacks) {
-                val = currentCallbacks[key];
-                callbacks = val.c;
-                args = val.a;
-                args.unshift(undefined);
-
-                for (j = 0; j < callbacks.length; j++) {
-                    if ((tmp = callbacks[j].success)) {
-                        args[0] = val.d[j];
-                        tmp.apply(callbacks[j], args);
-                    }
-                }
+        callCallbacks = function(arr, arg/**/, callback) {
+            while ((callback = arr.shift())) {
+                callback(arg);
             }
+        },
 
+        success = function() {
+            callCallbacks(pendingSuccess);
+            callCallbacks(pendingComplete);
             pendingStop = [];
+        },
 
-            while ((tmp = pendingComplete.shift())) {
-                tmp();
-            }
+        stop = function(error) {
+            waitCount = 0;
+
+            callCallbacks(pendingStop, error);
+            callCallbacks(pendingComplete);
+            pendingSuccess = [];
+
+            return $H;
         };
 
     window.$H = $H = {
@@ -157,6 +138,10 @@
         stop: stop,
 
         go: function(href) {
+            var hasMatch,
+                i,
+                args;
+
             stop();
 
             href = getFullURI(href);
@@ -167,64 +152,99 @@
                 val = routes[key];
 
                 if ((args = matchURI(key[0] === 'm', href, val.h))) {
-                    (function(meta, curPageId) {
-                        var j,
-                            callbacks = meta.c,
-                            callback,
-                            args = meta.a,
-                            getSuccessCallback = function(callbackIndex) {
-                                return function(data, error) {
-                                    if (waitCount > 0 && meta === currentCallbacks[curPageId]) {
-                                        if (error) {
-                                            waitCount = 0;
-                                            pendingGo = [];
-                                            stop(error);
-                                        } else {
-                                            meta.d[callbackIndex] = data;
-                                            if (--waitCount === 0) {
-                                                callSuccessCallbacks();
+                    hasMatch = true;
+
+                    (function(args, callbacks, curPageId) {
+                        var args2 = args.slice(0);
+
+                        args.unshift(undefined);
+
+                        for (i = 0; i < callbacks.length; i++) {
+                            if ($.isFunction((tmp = callbacks[i]))) {
+                                tmp = tmp();
+                            }
+
+                            (function(cb) {
+                                if (cb.go) {
+                                    waitCount++;
+
+                                    (function() {
+                                        var data;
+
+                                        pendingGo.push(function() {
+                                            data = cb.go.apply(cb, args2);
+
+                                            if (data && data.promise && data.then) {
+                                                data.then(
+                                                    function(d) {
+                                                        if (curPageId === pageId) {
+                                                            data = d;
+                                                            if (--waitCount === 0) {
+                                                                success();
+                                                            }
+                                                        }
+                                                    },
+
+                                                    function() {
+                                                        if (curPageId === pageId) {
+                                                            stop(true);
+                                                        }
+                                                    }
+                                                );
+                                            } else if (data) {
+                                                if (--waitCount === 0) {
+                                                    success();
+                                                }
+                                            } else {
+                                                stop(true);
                                             }
+                                        });
+
+                                        if (cb.success) {
+                                            pendingSuccess.push(function() {
+                                                if (curPageId === pageId) {
+                                                    args[0] = data;
+                                                    cb.success.apply(cb, args);
+                                                }
+                                            });
                                         }
-                                    }
+                                    })();
+                                } else if (cb.success) {
+                                    pendingSuccess.push(function() {
+                                        if (curPageId === pageId) {
+                                            args[0] = undefined;
+                                            cb.success.apply(cb, args);
+                                        }
+                                    });
                                 }
-                            };
 
-                        if ($.isFunction(callbacks)) {
-                            callbacks = callbacks();
+                                if (cb.stop) {
+                                    pendingStop.push(function(error) {
+                                        if (curPageId === pageId) {
+                                            args[0] = error;
+                                            cb.stop.apply(cb, args);
+                                        }
+                                    });
+                                }
+
+                                if (cb.complete) {
+                                    pendingComplete.push(function() {
+                                        if (curPageId === pageId) {
+                                            cb.complete.apply(cb, args2);
+                                        }
+                                    });
+                                }
+                            })(tmp);
                         }
-
-                        pendingStop.push(function(error) {
-                            args.unshift(error);
-                            for (j = 0; j < callbacks.length; j++) {
-                                if ((callback = callbacks[j].stop)) {
-                                    callback.apply(callbacks[j], args);
-                                }
-                            }
-                        });
-
-                        pendingComplete.push(function() {
-                            args.shift();
-                            for (j = 0; j < callbacks.length; j++) {
-                                if ((callback = callbacks[j].complete)) {
-                                    callback.apply(callbacks[j], args);
-                                }
-                            }
-                        });
-
-                        for (j = 0; j < callbacks.length; j++) {
-                            if ((callback = callbacks[j].go)) {
-                                waitCount++;
-                                pendingGo.push([callback, args, getSuccessCallback(j), callbacks[j]]);
-                            }
-                        }
-                    })((currentCallbacks[++pageId] = {c: val.c, d: [], a: args}), pageId);
+                    })(args, val.c, ++pageId);
                 }
             }
 
-            if (!pendingStop.length) {
+            if (!hasMatch) {
                 for (i = 0; i < noMatchCallbacks.length; i++) {
                     noMatchCallbacks[i](href);
                 }
+
                 return $H;
             }
 
@@ -242,23 +262,9 @@
             nopush = false;
 
             if (waitCount) {
-                while ((tmp = pendingGo.shift())) {
-                    (function(callback, args, success, context) {
-                        tmp = callback.apply(context, args);
-                        if (tmp && tmp.promise) {
-                            tmp.then(
-                                function(data) { success(data); },
-                                function() { success(undefined, true); }
-                            );
-                        } else if (tmp) {
-                            success(tmp);
-                        } else {
-                            success(undefined, true);
-                        }
-                    }).apply(window, tmp);
-                }
+                callCallbacks(pendingGo);
             } else {
-                callSuccessCallbacks();
+                success();
             }
 
             return $H;
@@ -307,6 +313,7 @@
             } else {
                 noMatchCallbacks.push(callback);
             }
+
             return $H;
         }
     };
