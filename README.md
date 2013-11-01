@@ -64,13 +64,13 @@ Single page app history handler
         },
 
         {
-            go: function(href, rem1, rem2) {
-                console.log(href, rem1, rem2);
+            go: function(href, rem1, rem2, rem3) {
+                console.log(href, rem1, rem2, rem3);
                 return false;
             },
 
-            stop: function(error, href, rem1, rem2) {
-                console.log(error, href, rem1, rem2);
+            stop: function(error, href, rem1, rem2, rem3) {
+                console.log(error, href, rem1, rem2, rem3);
             }
         }
     );
@@ -85,8 +85,8 @@ Single page app history handler
     > {"hello":"world"} /
 
     $H.go('/test?param=pppp#bababebe');
-    > /test?param=pppp#bababebe test pppp
-    > true "/test?param=pppp#bababebe" "test" "pppp"
+    > /test?param=pppp#bababebe test pppp bebe
+    > true "/test?param=pppp#bababebe" "test" "pppp" "bebe"
 
     $H.go('/some/reg/expr');
     > hello reg expr /some/reg/expr reg expr
