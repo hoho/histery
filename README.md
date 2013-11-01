@@ -3,7 +3,7 @@ Histery.js
 
 Single page app history handler
 
-## How to use (ugly examples)
+## How to use
 
     $H.on(/^\/some\/(reg)\/(expr)$/, {
         go: function(href, rem1, rem2) {
