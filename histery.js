@@ -1,5 +1,5 @@
 /*!
- * Histery.js v0.0.3, https://github.com/hoho/histery
+ * Histery.js v0.1.0, https://github.com/hoho/histery
  * (c) 2013 Marat Abdullin, MIT license
  */
 (function(window, location, undefined) {
@@ -8,6 +8,7 @@
         routes = {},
         pendingGo,
         pendingStop = [],
+        pendingError = [],
         pendingSuccess = [],
         pendingComplete = [],
         key,
@@ -95,9 +96,9 @@
             }
         },
 
-        callCallbacks = function(arr, arg/**/, callback) {
+        callCallbacks = function(arr/**/, callback) {
             while ((callback = arr.shift())) {
-                callback(arg);
+                callback();
             }
         },
 
@@ -105,12 +106,20 @@
             callCallbacks(pendingSuccess);
             callCallbacks(pendingComplete);
             pendingStop = [];
+            pendingError = [];
         },
 
         stop = function(error) {
             waitCount = 0;
 
-            callCallbacks(pendingStop, error);
+            if (error) {
+                callCallbacks(pendingError);
+                pendingStop = [];
+            } else {
+                callCallbacks(pendingStop);
+                pendingError = [];
+            }
+
             callCallbacks(pendingComplete);
             pendingSuccess = [];
 
@@ -135,7 +144,9 @@
             return $H;
         },
 
-        stop: stop,
+        stop: function() {
+            stop();
+        },
 
         go: function(href) {
             var hasMatch,
@@ -165,6 +176,16 @@
                             }
 
                             (function(cb) {
+                                var pushCallback = function(arr, callback) {
+                                    if (callback) {
+                                        arr.push(function() {
+                                            if (curPageId === pageId) {
+                                                callback.apply(cb, args2);
+                                            }
+                                        });
+                                    }
+                                };
+
                                 if (cb.go) {
                                     waitCount++;
 
@@ -218,22 +239,9 @@
                                     });
                                 }
 
-                                if (cb.stop) {
-                                    pendingStop.push(function(error) {
-                                        if (curPageId === pageId) {
-                                            args[0] = error;
-                                            cb.stop.apply(cb, args);
-                                        }
-                                    });
-                                }
-
-                                if (cb.complete) {
-                                    pendingComplete.push(function() {
-                                        if (curPageId === pageId) {
-                                            cb.complete.apply(cb, args2);
-                                        }
-                                    });
-                                }
+                                pushCallback(pendingStop, cb.stop);
+                                pushCallback(pendingError, cb.error);
+                                pushCallback(pendingComplete, cb.complete);
                             })(tmp);
                         }
                     })(args, val.c, ++pageId);
@@ -247,8 +255,6 @@
                     }
                 } else {
                     location.href = href;
-
-                    return $H;
                 }
             }
 
@@ -276,7 +282,8 @@
             // callbacks should look like:
             //     {go: function(href, ...) {},
             //      success: function(data, href, ...) {},
-            //      stop: function(error, href, ...),
+            //      stop: function(href, ...),
+            //      error: function(href, ...),
             //      complete: function(href) {}}
             if ((val = routes[(key = getRouteKey(hrefObj))])) {
                 val.c.push(callbacks);
