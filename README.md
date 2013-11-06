@@ -71,8 +71,12 @@ Single page app history handler
                 return false;
             },
 
-            stop: function(error, href, rem1, rem2, rem3) {
-                console.log(error, href, rem1, rem2, rem3);
+            stop: function(href, rem1, rem2, rem3) {
+                console.log('stop', href, rem1, rem2, rem3);
+            },
+
+            error: function(href, rem1, rem2, rem3) {
+                console.log('error', href, rem1, rem2, rem3);
             }
         }
     );
@@ -88,7 +92,7 @@ Single page app history handler
 
     $H.go('/test?param=pppp#bababebe');
     > /test?param=pppp#bababebe test pppp bebe
-    > true "/test?param=pppp#bababebe" "test" "pppp" "bebe"
+    > error /test?param=pppp#bababebe test pppp bebe
 
     $H.go('/some/reg/expr');
     > hello reg expr /some/reg/expr reg expr
