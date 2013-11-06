@@ -27,13 +27,15 @@ Single page app history handler
             console.log(data, href, rem1, rem2);
         },
 
-        stop: function(error, href, rem1, rem2) {
-            // This callback is called if the promise from go() callback is
-            // rejected or if go() callback returned false. In this case
-            // `error` will be true.
-            // Or this callback will be called if you do $H.stop() or
+        stop: function(href, rem1, rem2) {
+            // This callback is called called if you do $H.stop() or
             // another $H.go() before the current go() promises are
-            // resolved. In this case `error` will be false.
+            // resolved.
+        },
+
+        error: function(href, rem1, rem2) {
+            // This callback is called if the promise from go() callback is
+            // rejected or if go() callback returned false.
         },
 
         complete: function(href, rem1, rem2) {
