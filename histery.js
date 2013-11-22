@@ -1,5 +1,5 @@
 /*!
- * Histery.js v0.1.1, https://github.com/hoho/histery
+ * Histery.js v0.1.2, https://github.com/hoho/histery
  * (c) 2013 Marat Abdullin, MIT license
  */
 (function(window, location, undefined) {
@@ -11,7 +11,6 @@
         pendingError = [],
         pendingSuccess = [],
         pendingComplete = [],
-        currentLeave,
         pendingLeave = [],
         key,
         val,
@@ -109,7 +108,6 @@
             callCallbacks(pendingComplete);
             pendingStop = [];
             pendingError = [];
-            pendingLeave = currentLeave;
         },
 
         stop = function(error) {
@@ -159,7 +157,6 @@
             stop();
 
             callCallbacks(pendingLeave);
-            currentLeave = [];
 
             href = getFullURI(href);
 
@@ -250,7 +247,7 @@
                                 pushCallback(pendingStop, cb.stop);
                                 pushCallback(pendingError, cb.error);
                                 pushCallback(pendingComplete, cb.complete);
-                                pushCallback(currentLeave, cb.leave);
+                                pushCallback(pendingLeave, cb.leave);
                             })(tmp);
                         }
                     })(args, val.c, pageId);
