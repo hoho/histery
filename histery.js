@@ -1,5 +1,5 @@
 /*!
- * Histery.js v0.1.0, https://github.com/hoho/histery
+ * Histery.js v0.1.1, https://github.com/hoho/histery
  * (c) 2013 Marat Abdullin, MIT license
  */
 (function(window, location, undefined) {
@@ -11,6 +11,8 @@
         pendingError = [],
         pendingSuccess = [],
         pendingComplete = [],
+        currentLeave,
+        pendingLeave = [],
         key,
         val,
         tmp,
@@ -107,6 +109,7 @@
             callCallbacks(pendingComplete);
             pendingStop = [];
             pendingError = [];
+            pendingLeave = currentLeave;
         },
 
         stop = function(error) {
@@ -155,9 +158,14 @@
 
             stop();
 
+            callCallbacks(pendingLeave);
+            currentLeave = [];
+
             href = getFullURI(href);
 
             pendingGo = [];
+
+            pageId++;
 
             for (key in routes) {
                 val = routes[key];
@@ -242,9 +250,10 @@
                                 pushCallback(pendingStop, cb.stop);
                                 pushCallback(pendingError, cb.error);
                                 pushCallback(pendingComplete, cb.complete);
+                                pushCallback(currentLeave, cb.leave);
                             })(tmp);
                         }
-                    })(args, val.c, ++pageId);
+                    })(args, val.c, pageId);
                 }
             }
 
@@ -282,9 +291,10 @@
             // callbacks should look like:
             //     {go: function(href, ...) {},
             //      success: function(data, href, ...) {},
-            //      stop: function(href, ...),
-            //      error: function(href, ...),
-            //      complete: function(href) {}}
+            //      stop: function(href, ...) {},
+            //      error: function(href, ...) {},
+            //      complete: function(href) {},
+            //      leave: function(href) {}}
             if ((val = routes[(key = getRouteKey(hrefObj))])) {
                 val.c.push(callbacks);
             } else if (key) {
