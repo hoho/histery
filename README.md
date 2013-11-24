@@ -1,7 +1,9 @@
 Histery.js
 ==========
 
-Single page app history handler
+Single page app history handler.
+
+Requires jQuery (for event binding and for typechecking).
 
 ## How to use
 
