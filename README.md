@@ -3,7 +3,7 @@ Histery.js
 
 Single page app history handler.
 
-Requires jQuery (for event binding and for typechecking).
+Requires jQuery (for event binding, typechecking and promises).
 
 ## How to use
 
