@@ -1,5 +1,5 @@
 /*!
- * Histery.js v0.1.3, https://github.com/hoho/histery
+ * Histery.js v0.1.4, https://github.com/hoho/histery
  * (c) 2013 Marat Abdullin, MIT license
  */
 (function(window, location, undefined) {
@@ -20,6 +20,7 @@
         pageId = 0,
         waitCount,
         processed,
+        processedTimer,
         noMatchCallbacks = [],
 
         isExpr = function(hrefObj) {
@@ -132,12 +133,19 @@
             $(window)
                 .on('popstate hashchange',
                     function() {
-                        if (!processed) {
-                            processed = nopush = true;
+                        // TODO: Think more about how to skip redundant
+                        //       handlers.
+                        if (!processed || processed !== location.href) {
+                            if (processedTimer) {
+                                window.clearTimeout(processedTimer);
+                            }
+                            processed = location.href;
+                            nopush = true;
                             $H.go();
-                            window.setTimeout(function() {
+                            processedTimer = window.setTimeout(function() {
+                                processedTimer = undefined;
                                 processed = undefined;
-                            }, 0);
+                            }, 500);
                         }
                     })
                 .trigger('popstate');
