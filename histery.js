@@ -1,12 +1,11 @@
 /*!
- * Histery.js v0.1.4, https://github.com/hoho/histery
+ * Histery.js v0.2.0, https://github.com/hoho/histery
  * (c) 2013 Marat Abdullin, MIT license
  */
 (function(window, location, undefined) {
     var $H,
         history = window.history || {},
         routes = {},
-        pendingGo,
         pendingStop = [],
         pendingError = [],
         pendingSuccess = [],
@@ -22,6 +21,7 @@
         processed,
         processedTimer,
         noMatchCallbacks = [],
+        currentMatches = {},
 
         isExpr = function(hrefObj) {
             return hrefObj instanceof RegExp;
@@ -161,15 +161,14 @@
             var hasMatch,
                 i,
                 key,
-                args;
+                args,
+                pendingGo = [],
+                newMatches = {},
+                newLeave = [];
 
             stop();
 
-            callCallbacks(pendingLeave);
-
             href = getFullURI(href);
-
-            pendingGo = [];
 
             pageId++;
 
@@ -177,10 +176,13 @@
                 val = routes[key];
 
                 if ((args = matchURI(key[0] === 'm', href, val.h))) {
-                    hasMatch = true;
+                    newMatches[key] = hasMatch = true;
 
                     (function(args, callbacks, curPageId) {
-                        var args2 = args.slice(0);
+                        args.unshift(key in currentMatches);
+
+                        var curKey = key,
+                            args2 = args.slice(0);
 
                         args.unshift(undefined);
 
@@ -256,12 +258,27 @@
                                 pushCallback(pendingStop, cb.stop);
                                 pushCallback(pendingError, cb.error);
                                 pushCallback(pendingComplete, cb.complete);
-                                pushCallback(pendingLeave, cb.leave);
+
+                                if (cb.leave) {
+                                    // First argument of leave callback is
+                                    // `sameMatch`. It is true when the same
+                                    // route matched new href and href we're
+                                    // leaving).
+                                    newLeave.push(function() {
+                                        args2[0] = curKey in currentMatches;
+                                        cb.leave.apply(cb, args2);
+                                    });
+                                }
                             })(tmp);
                         }
                     })(args, val.c, pageId);
                 }
             }
+
+            currentMatches = newMatches;
+
+            callCallbacks(pendingLeave);
+            pendingLeave = newLeave;
 
             if (initialized) {
                 if (history.pushState) {
