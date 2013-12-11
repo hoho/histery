@@ -182,9 +182,11 @@
                         args.unshift(key in currentMatches);
 
                         var curKey = key,
-                            args2 = args.slice(0);
+                            successArgs = args.slice(0);
 
-                        args.unshift(undefined);
+                        // Success callback is one argument longer (to pass the
+                        // data).
+                        successArgs.unshift(undefined);
 
                         for (i = 0; i < callbacks.length; i++) {
                             if ($.isFunction((tmp = callbacks[i]))) {
@@ -196,7 +198,7 @@
                                     if (callback) {
                                         arr.push(function() {
                                             if (curPageId === pageId) {
-                                                callback.apply(cb, args2);
+                                                callback.apply(cb, args);
                                             }
                                         });
                                     }
@@ -209,7 +211,7 @@
                                         var data;
 
                                         pendingGo.push(function() {
-                                            data = cb.go.apply(cb, args2);
+                                            data = cb.go.apply(cb, args);
 
                                             if (data && data.promise && data.then) {
                                                 data.then(
@@ -240,8 +242,8 @@
                                         if (cb.success) {
                                             pendingSuccess.push(function() {
                                                 if (curPageId === pageId) {
-                                                    args[0] = data;
-                                                    cb.success.apply(cb, args);
+                                                    successArgs[0] = data;
+                                                    cb.success.apply(cb, successArgs);
                                                 }
                                             });
                                         }
@@ -249,8 +251,8 @@
                                 } else if (cb.success) {
                                     pendingSuccess.push(function() {
                                         if (curPageId === pageId) {
-                                            args[0] = undefined;
-                                            cb.success.apply(cb, args);
+                                            successArgs[0] = undefined;
+                                            cb.success.apply(cb, successArgs);
                                         }
                                     });
                                 }
@@ -265,8 +267,8 @@
                                     // route matched new href and href we're
                                     // leaving).
                                     newLeave.push(function() {
-                                        args2[0] = curKey in currentMatches;
-                                        cb.leave.apply(cb, args2);
+                                        args[0] = curKey in currentMatches;
+                                        cb.leave.apply(cb, args);
                                     });
                                 }
                             })(tmp);
