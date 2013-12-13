@@ -128,9 +128,19 @@ $H.on(
     }
 );
 
-$H.noMatch(function(href) {
+$H.noMatch(function(sameMatch, href) {
     // This callback is called when there are no matches.
-    console.log('No match:', href);
+    console.log('No match: sameMatch: ' + sameMatch + ', href: ' + href);
+});
+
+// You can define leave callback for no match too.
+$H.noMatch({
+    go: function(sameMatch, href) {
+        console.log('No match go: sameMatch: ' + sameMatch + ', href: ' + href);
+    },
+    leave: function(sameMatch, href) {
+        console.log('No match leave: sameMatch: ' + sameMatch + ', href: ' + href);
+    }
 });
 
 // Then we need to start. Suppose my location is /.
@@ -153,8 +163,15 @@ $H.go('/some/reg/expr');
 $H.go('/ololo/piupiu');
 > leave1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr
 > No match: /ololo/piupiu
+> No match go: sameMatch: false, href: /ololo/piupiu
+
+$H.go('/ololo/piupiu2');
+> No match leave: sameMatch: true, href: /ololo/piupiu
+> No match: sameMatch: true, href: /ololo/piupiu2
+> No match go: sameMatch: true, href: /ololo/piupiu2
 
 $H.go('/');
+> No match leave: sameMatch: false, href: /ololo/piupiu2
 > go2: sameMatch: false, href: /
 > success2: data: {"hello":"world"}, sameMatch: false, href: /
 

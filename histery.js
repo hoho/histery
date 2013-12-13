@@ -1,5 +1,5 @@
 /*!
- * Histery.js v0.2.0, https://github.com/hoho/histery
+ * Histery.js v0.3.0, https://github.com/hoho/histery
  * (c) 2013 Marat Abdullin, MIT license
  */
 (function(window, location, undefined) {
@@ -22,6 +22,7 @@
         processedTimer,
         noMatchCallbacks = [],
         currentMatches = {},
+        prevIsNoMatch = false,
 
         isExpr = function(hrefObj) {
             return hrefObj instanceof RegExp;
@@ -279,6 +280,8 @@
 
             currentMatches = newMatches;
 
+            if (hasMatch) { prevIsNoMatch = false; }
+
             callCallbacks(pendingLeave);
             pendingLeave = newLeave;
 
@@ -297,8 +300,25 @@
 
             if (!hasMatch) {
                 for (i = 0; i < noMatchCallbacks.length; i++) {
-                    noMatchCallbacks[i](href);
+                    // Reuse `key` variable here.
+                    key = noMatchCallbacks[i];
+
+                    if ($.isPlainObject(key)) {
+                        key.go && key.go(prevIsNoMatch, href);
+
+                        (function(cb) {
+                            if (cb) {
+                                pendingLeave.push(function() {
+                                    cb(prevIsNoMatch, href);
+                                });
+                            }
+                        })(key.leave);
+                    } else {
+                        noMatchCallbacks[i](prevIsNoMatch, href);
+                    }
                 }
+
+                prevIsNoMatch = true;
 
                 return $H;
             }
