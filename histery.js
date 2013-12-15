@@ -1,5 +1,5 @@
 /*!
- * Histery.js v0.5.0, https://github.com/hoho/histery
+ * Histery.js v0.5.1, https://github.com/hoho/histery
  * (c) 2013 Marat Abdullin, MIT license
  */
 (function(window, location, undefined) {
@@ -21,7 +21,6 @@
         processed,
         processedTimer,
         currentMatches = {},
-        hasMatch,
         no = 'no',
 
         isExpr = function(hrefObj) {
@@ -99,11 +98,19 @@
             }
         },
 
+        pushFilteredCallbacks = function(hasMatch, arr, ret/**/, i, tmp) {
+            for (i = 0; i < arr.length; i++) {
+                tmp = arr[i];
+
+                if (tmp[0] === hasMatch) {
+                    ret.push(tmp[1]);
+                }
+            }
+        },
+
         callCallbacks = function(arr/**/, callback) {
             while ((callback = arr.shift())) {
-                if (hasMatch !== callback[0]) {
-                    callback[1]();
-                }
+                callback();
             }
         },
 
@@ -165,16 +172,18 @@
                 key,
                 args,
                 pendingGo = [],
+                hasMatch = false,
                 newMatches = {},
                 noMatches = {},
-                newLeave = [],
-                newLeaveNoMatch = [],
-                prevHasMatch = hasMatch,
+                tmpGo = [],
+                tmpStop = [],
+                tmpError = [],
+                tmpSuccess = [],
+                tmpComplete = [],
+                tmpLeave = [],
                 waitCountNoMatch = 0;
 
             stop();
-
-            hasMatch = false;
 
             href = getFullURI(href);
 
@@ -195,7 +204,7 @@
                         args.unshift(key in currentMatches);
 
                         var curKey = key,
-                            isNoMatch = curKey === no,
+                            isMatch = curKey !== no,
                             successArgs = args.slice(0);
 
                         // Success callback is one argument longer (to pass the
@@ -211,7 +220,7 @@
                                 var pushCallback = function(arr, callback) {
                                     if (callback) {
                                         arr.push([
-                                            isNoMatch,
+                                            isMatch,
                                             function() {
                                                 if (curPageId === pageId) {
                                                     callback.apply(cb, args);
@@ -222,17 +231,17 @@
                                 };
 
                                 if (cb.go) {
-                                    if (isNoMatch) {
-                                        waitCountNoMatch++;
-                                    } else {
+                                    if (isMatch) {
                                         waitCount++;
+                                    } else {
+                                        waitCountNoMatch++;
                                     }
 
                                     (function() {
                                         var data;
 
-                                        pendingGo.push([
-                                            isNoMatch,
+                                        tmpGo.push([
+                                            isMatch,
                                             function() {
                                                 data = cb.go.apply(cb, args);
 
@@ -264,8 +273,8 @@
                                         ]);
 
                                         if (cb.success) {
-                                            pendingSuccess.push([
-                                                isNoMatch,
+                                            tmpSuccess.push([
+                                                isMatch,
                                                 function() {
                                                     if (curPageId === pageId) {
                                                         successArgs[0] = data;
@@ -276,8 +285,8 @@
                                         }
                                     })();
                                 } else if (cb.success) {
-                                    pendingSuccess.push([
-                                        isNoMatch,
+                                    tmpSuccess.push([
+                                        isMatch,
                                         function() {
                                             if (curPageId === pageId) {
                                                 successArgs[0] = undefined;
@@ -287,17 +296,17 @@
                                     ]);
                                 }
 
-                                pushCallback(pendingStop, cb.stop);
-                                pushCallback(pendingError, cb.error);
-                                pushCallback(pendingComplete, cb.complete);
+                                pushCallback(tmpStop, cb.stop);
+                                pushCallback(tmpError, cb.error);
+                                pushCallback(tmpComplete, cb.complete);
 
                                 if (cb.leave) {
                                     // First argument of leave callback is
                                     // `sameMatch`. It is true when the same
                                     // route matched new href and href we're
                                     // leaving).
-                                    (isNoMatch ? newLeaveNoMatch : newLeave).push([
-                                        isNoMatch,
+                                    tmpLeave.push([
+                                        isMatch,
                                         function() {
                                             args[0] = curKey in currentMatches;
                                             cb.leave.apply(cb, args);
@@ -310,16 +319,17 @@
                 }
             }
 
+            pushFilteredCallbacks(hasMatch, tmpGo, pendingGo);
+            pushFilteredCallbacks(hasMatch, tmpStop, pendingStop);
+            pushFilteredCallbacks(hasMatch, tmpError, pendingError);
+            pushFilteredCallbacks(hasMatch, tmpSuccess, pendingSuccess);
+            pushFilteredCallbacks(hasMatch, tmpComplete, pendingComplete);
+
             currentMatches = hasMatch ? newMatches : noMatches;
 
-            // Leave callbacks are from previous go(), so restore `hasMatch`
-            // to process leave callbacks properly.
-            i = hasMatch;
-            hasMatch = prevHasMatch;
             callCallbacks(pendingLeave);
-            hasMatch = i;
 
-            pendingLeave = hasMatch ? newLeave : newLeaveNoMatch;
+            pushFilteredCallbacks(hasMatch, tmpLeave, pendingLeave);
 
             if (initialized) {
                 if (history.pushState) {
