@@ -1,5 +1,5 @@
 /*!
- * Histery.js v0.4.0, https://github.com/hoho/histery
+ * Histery.js v0.5.0, https://github.com/hoho/histery
  * (c) 2013 Marat Abdullin, MIT license
  */
 (function(window, location, undefined) {
@@ -20,20 +20,20 @@
         waitCount,
         processed,
         processedTimer,
-        noMatchCallbacks = [],
         currentMatches = {},
-        prevIsNoMatch = false,
+        hasMatch,
+        no = 'no',
 
         isExpr = function(hrefObj) {
             return hrefObj instanceof RegExp;
         },
 
         getRouteKey = function(hrefObj) {
-            return hrefObj && (
-                $.isPlainObject(hrefObj) ?
-                    'm' + hrefObj.pathname + '|' + hrefObj.search + '|' + hrefObj.hash :
-                    ((isExpr(hrefObj) ? 'e' : 's') + hrefObj)
-            );
+            return (hrefObj && (
+                       $.isPlainObject(hrefObj) ?
+                       'm' + hrefObj.pathname + '|' + hrefObj.search + '|' + hrefObj.hash :
+                       ((isExpr(hrefObj) ? 'e' : 's') + hrefObj)
+                   )) || no;
         },
 
         getFullURI = function(href/**/, l) {
@@ -101,7 +101,9 @@
 
         callCallbacks = function(arr/**/, callback) {
             while ((callback = arr.shift())) {
-                callback();
+                if (hasMatch !== callback[0]) {
+                    callback[1]();
+                }
             }
         },
 
@@ -159,15 +161,20 @@
         },
 
         go: function(href) {
-            var hasMatch,
-                i,
+            var i,
                 key,
                 args,
                 pendingGo = [],
                 newMatches = {},
-                newLeave = [];
+                noMatches = {},
+                newLeave = [],
+                newLeaveNoMatch = [],
+                prevHasMatch = hasMatch,
+                waitCountNoMatch = 0;
 
             stop();
+
+            hasMatch = false;
 
             href = getFullURI(href);
 
@@ -176,13 +183,19 @@
             for (key in routes) {
                 val = routes[key];
 
-                if ((args = matchURI(key[0] === 'm', href, val.h))) {
-                    newMatches[key] = hasMatch = true;
+                if (key === no || ((args = matchURI(key[0] === 'm', href, val.h)))) {
+                    if (key === no) {
+                        args = [href];
+                        noMatches[key] = true;
+                    } else {
+                        newMatches[key] = hasMatch = true;
+                    }
 
                     (function(args, callbacks, curPageId) {
                         args.unshift(key in currentMatches);
 
                         var curKey = key,
+                            isNoMatch = curKey === no,
                             successArgs = args.slice(0);
 
                         // Success callback is one argument longer (to pass the
@@ -197,65 +210,81 @@
                             (function(cb) {
                                 var pushCallback = function(arr, callback) {
                                     if (callback) {
-                                        arr.push(function() {
-                                            if (curPageId === pageId) {
-                                                callback.apply(cb, args);
+                                        arr.push([
+                                            isNoMatch,
+                                            function() {
+                                                if (curPageId === pageId) {
+                                                    callback.apply(cb, args);
+                                                }
                                             }
-                                        });
+                                        ]);
                                     }
                                 };
 
                                 if (cb.go) {
-                                    waitCount++;
+                                    if (isNoMatch) {
+                                        waitCountNoMatch++;
+                                    } else {
+                                        waitCount++;
+                                    }
 
                                     (function() {
                                         var data;
 
-                                        pendingGo.push(function() {
-                                            data = cb.go.apply(cb, args);
+                                        pendingGo.push([
+                                            isNoMatch,
+                                            function() {
+                                                data = cb.go.apply(cb, args);
 
-                                            if (data && data.promise && data.then) {
-                                                data.then(
-                                                    function(d) {
-                                                        if (curPageId === pageId) {
-                                                            data = d;
-                                                            if (--waitCount === 0) {
-                                                                success();
+                                                if (data && data.promise && data.then) {
+                                                    data.then(
+                                                        function(d) {
+                                                            if (curPageId === pageId) {
+                                                                data = d;
+                                                                if (--waitCount === 0) {
+                                                                    success();
+                                                                }
+                                                            }
+                                                        },
+
+                                                        function() {
+                                                            if (curPageId === pageId) {
+                                                                stop(true);
                                                             }
                                                         }
-                                                    },
-
-                                                    function() {
-                                                        if (curPageId === pageId) {
-                                                            stop(true);
-                                                        }
+                                                    );
+                                                } else if (data || data === undefined) {
+                                                    if (--waitCount === 0) {
+                                                        success();
                                                     }
-                                                );
-                                            } else if (data || data === undefined) {
-                                                if (--waitCount === 0) {
-                                                    success();
+                                                } else {
+                                                    stop(true);
                                                 }
-                                            } else {
-                                                stop(true);
                                             }
-                                        });
+                                        ]);
 
                                         if (cb.success) {
-                                            pendingSuccess.push(function() {
-                                                if (curPageId === pageId) {
-                                                    successArgs[0] = data;
-                                                    cb.success.apply(cb, successArgs);
+                                            pendingSuccess.push([
+                                                isNoMatch,
+                                                function() {
+                                                    if (curPageId === pageId) {
+                                                        successArgs[0] = data;
+                                                        cb.success.apply(cb, successArgs);
+                                                    }
                                                 }
-                                            });
+                                            ]);
                                         }
                                     })();
                                 } else if (cb.success) {
-                                    pendingSuccess.push(function() {
-                                        if (curPageId === pageId) {
-                                            successArgs[0] = undefined;
-                                            cb.success.apply(cb, successArgs);
+                                    pendingSuccess.push([
+                                        isNoMatch,
+                                        function() {
+                                            if (curPageId === pageId) {
+                                                successArgs[0] = undefined;
+                                                cb.success.apply(cb, successArgs);
+                                            }
                                         }
-                                    });
+                                    ]);
                                 }
 
                                 pushCallback(pendingStop, cb.stop);
@@ -267,10 +296,13 @@
                                     // `sameMatch`. It is true when the same
                                     // route matched new href and href we're
                                     // leaving).
-                                    newLeave.push(function() {
-                                        args[0] = curKey in currentMatches;
-                                        cb.leave.apply(cb, args);
-                                    });
+                                    (isNoMatch ? newLeaveNoMatch : newLeave).push([
+                                        isNoMatch,
+                                        function() {
+                                            args[0] = curKey in currentMatches;
+                                            cb.leave.apply(cb, args);
+                                        }
+                                    ]);
                                 }
                             })(tmp);
                         }
@@ -278,12 +310,16 @@
                 }
             }
 
-            currentMatches = newMatches;
+            currentMatches = hasMatch ? newMatches : noMatches;
 
-            if (hasMatch) { prevIsNoMatch = false; }
-
+            // Leave callbacks are from previous go(), so restore `hasMatch`
+            // to process leave callbacks properly.
+            i = hasMatch;
+            hasMatch = prevHasMatch;
             callCallbacks(pendingLeave);
-            pendingLeave = newLeave;
+            hasMatch = i;
+
+            pendingLeave = hasMatch ? newLeave : newLeaveNoMatch;
 
             if (initialized) {
                 if (history.pushState) {
@@ -298,35 +334,16 @@
             initialized = true;
             nopush = false;
 
-            if (!hasMatch) {
-                for (i = 0; i < noMatchCallbacks.length; i++) {
-                    // Reuse `key` variable here.
-                    key = noMatchCallbacks[i];
-
-                    if ($.isPlainObject(key)) {
-                        key.go && key.go(prevIsNoMatch, href);
-
-                        (function(cb) {
-                            if (cb) {
-                                pendingLeave.push(function() {
-                                    cb(prevIsNoMatch, href);
-                                });
-                            }
-                        })(key.leave);
-                    } else {
-                        noMatchCallbacks[i](prevIsNoMatch, href);
-                    }
+            if (hasMatch || noMatches[no]) {
+                if (!hasMatch) {
+                    waitCount = waitCountNoMatch;
                 }
 
-                prevIsNoMatch = true;
-
-                return $H;
-            }
-
-            if (waitCount) {
-                callCallbacks(pendingGo);
-            } else {
-                success();
+                if (waitCount) {
+                    callCallbacks(pendingGo);
+                } else {
+                    success();
+                }
             }
 
             return $H;
@@ -366,16 +383,6 @@
                 }
 
                 delete routes[key];
-            }
-
-            return $H;
-        },
-
-        noMatch: function(callback, remove) {
-            if (remove) {
-                removeArrayItem(noMatchCallbacks, callback);
-            } else {
-                noMatchCallbacks.push(callback);
             }
 
             return $H;

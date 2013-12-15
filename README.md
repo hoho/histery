@@ -128,13 +128,15 @@ $H.on(
     }
 );
 
-$H.noMatch(function(sameMatch, href) {
-    // This callback is called when there are no matches.
-    console.log('No match: sameMatch: ' + sameMatch + ', href: ' + href);
+$H.on(null, {
+    go: function(sameMatch, href) {
+        // This callback is called when there are no matches.
+        console.log('No match: sameMatch: ' + sameMatch + ', href: ' + href);
+    }
 });
 
 // You can define leave callback for no match too.
-$H.noMatch({
+$H.on(null, {
     go: function(sameMatch, href) {
         console.log('No match go: sameMatch: ' + sameMatch + ', href: ' + href);
     },
