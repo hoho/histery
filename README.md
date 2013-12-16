@@ -164,7 +164,7 @@ $H.go('/some/reg/expr');
 
 $H.go('/ololo/piupiu');
 > leave1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr
-> No match: /ololo/piupiu
+> No match: sameMatch: false, href: /ololo/piupiu
 > No match go: sameMatch: false, href: /ololo/piupiu
 
 $H.go('/ololo/piupiu2');
