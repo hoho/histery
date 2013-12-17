@@ -30,23 +30,18 @@ module.exports = function(grunt) {
                     urls: ['http://localhost:3000/']
                 }
             }
-        },
-
-        concurrent: {
-            target: ['testServer', 'qunit']
         }
     });
 
     grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-contrib-uglify');
-    grunt.loadNpmTasks('grunt-concurrent');
     grunt.loadNpmTasks('grunt-contrib-qunit');
 
-    grunt.registerTask('testServer', function() {
-        var cb = this.async(),
-            express = require('express'),
-            webserver = express();
+    var webserver;
 
+    grunt.registerTask('testInit', function() {
+        var express = require('express');
+        webserver = express();
         webserver.get(new RegExp('^/histery.js'), function(req, res) { res.sendfile('histery.js'); });
         webserver.get(new RegExp('^/qunit.css'), function(req, res) { res.sendfile('node_modules/qunitjs/qunit/qunit.css'); });
         webserver.get(new RegExp('^/qunit.js'), function(req, res) { res.sendfile('node_modules/qunitjs/qunit/qunit.js'); });
@@ -54,14 +49,13 @@ module.exports = function(grunt) {
         webserver.get(new RegExp('^/test.js'), function(req, res) { res.sendfile('test/test.js'); });
         webserver.get(new RegExp('^/'), function(req, res) { res.sendfile('test/index.html'); });
         webserver = webserver.listen(3000);
-        console.log('Listening on port 3000');
-
-        setTimeout(function () {
-            console.log('Shutting down server on port 3000');
-            webserver.close();
-            cb();
-        }, 1500);
+        grunt.log.writeln('Listening on port 3000');
     });
+    grunt.registerTask('testCleanup', function() {
+        grunt.log.writeln('Shutting down server on port 3000');
+        webserver.close();
+    });
+    grunt.registerTask('test', ['testInit', 'qunit', 'testCleanup']);
 
-    grunt.registerTask('default', ['jshint', 'uglify', 'concurrent']);
+    grunt.registerTask('default', ['jshint', 'uglify', 'test']);
 };
