@@ -19,7 +19,7 @@ asyncTest('General test', function() {
             var ret = $.Deferred();
             window.setTimeout(function() {
                 ret.resolve('hello ' + rem1 + ' ' + rem2);
-            }, 300);
+            }, 100);
 
             testResult.push('go1: sameMatch: ' + sameMatch + ', href: ' + href +
                 ', rem1: ' + rem1 + ', rem2: ' + rem2);
@@ -158,10 +158,15 @@ asyncTest('General test', function() {
     testResult = [];
     $H.go('/some/reg/expr');
 
+    deepEqual(testResult, [
+        'leave3: sameMatch: false, href: /test?param=pppp#bababebe, rem1: test, rem2: pppp, rem3: bebe',
+        'go1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr'
+    ]);
+
+    testResult = [];
+
     window.setTimeout(function() {
         deepEqual(testResult, [
-            'leave3: sameMatch: false, href: /test?param=pppp#bababebe, rem1: test, rem2: pppp, rem3: bebe',
-            'go1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
             'success1: data: hello reg expr, sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
             'complete1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr'
         ]);
@@ -203,5 +208,5 @@ asyncTest('General test', function() {
         ]);
 
         start();
-    }, 600);
+    }, 300);
 });
