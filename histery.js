@@ -1,38 +1,35 @@
 /*!
- * Histery.js v0.5.1, https://github.com/hoho/histery
+ * Histery.js v0.5.2, https://github.com/hoho/histery
  * (c) 2013 Marat Abdullin, MIT license
  */
 (function(window, location, undefined) {
     var $H,
         history = window.history || {},
-        routes = {},
+        routes = [],
+        noMatchCount = 0,
         pendingStop = [],
         pendingError = [],
         pendingSuccess = [],
         pendingComplete = [],
         pendingLeave = [],
-        key,
-        val,
-        tmp,
+        route,
         initialized,
         nopush,
         pageId = 0,
         waitCount,
         processed,
         processedTimer,
-        currentMatches = {},
-        no = 'no',
 
-        isExpr = function(hrefObj) {
-            return hrefObj instanceof RegExp;
+        objConstructor = {}.constructor,
+
+        isFunction = function(val) {
+            return typeof val === 'function';
         },
 
-        getRouteKey = function(hrefObj) {
-            return (hrefObj && (
-                       $.isPlainObject(hrefObj) ?
-                       'm' + hrefObj.pathname + '|' + hrefObj.search + '|' + hrefObj.hash :
-                       ((isExpr(hrefObj) ? 'e' : 's') + hrefObj)
-                   )) || no;
+        isPlainObject = function(val) {
+            // XXX: This version of isPlainObject doesn't work for objects from
+            //      other windows and iframes.
+            return val && (val.constructor === objConstructor);
         },
 
         getFullURI = function(href/**/, l) {
@@ -47,13 +44,20 @@
         },
 
         matchURIPart = function(part, matcher/**/, m, tmp, ret) {
-            if (isExpr(matcher)) {
+            if (matcher instanceof RegExp) {
                 m = 0;
                 tmp = part.replace(matcher, function() {
                     m++;
                     ret = Array.prototype.slice.call((ret = arguments), 1, ret.length - 2);
                     return '';
                 });
+            } else if (isFunction(matcher)) {
+                m = 1;
+                ret = matcher(part);
+
+                if (ret && !(ret instanceof Array)) {
+                    ret = [ret];
+                }
             } else if (part === matcher) {
                 m = 1;
                 ret = [];
@@ -64,18 +68,18 @@
             }
         },
 
-        matchURI = function(isObject, href, hrefObj/**/, pathname, search, hash) {
+        matchURI = function(href, hrefObj/**/, pathname, search, hash) {
             href.replace(/^([^?#]+)(?:\?([^#]*))?(?:#(.*))?$/, function(_, p, s, h) {
-                pathname = p;
-                search = s;
-                hash = h;
+                pathname = p || '';
+                search = s || '';
+                hash = h || '';
             });
 
             if (pathname) {
-                if (isObject) {
-                    pathname = matchURIPart(pathname, hrefObj.pathname);
-                    search = hrefObj.search && search ? matchURIPart(search, hrefObj.search) : [];
-                    hash = hrefObj.hash && hash ? matchURIPart(hash, hrefObj.hash) : [];
+                if (isPlainObject(hrefObj)) {
+                    pathname = hrefObj.pathname ? matchURIPart(pathname, hrefObj.pathname) : [];
+                    search = hrefObj.search ? matchURIPart(search, hrefObj.search) : [];
+                    hash = hrefObj.hash ? matchURIPart(hash, hrefObj.hash) : [];
                 } else {
                     pathname = matchURIPart(pathname, hrefObj);
                     search = hash = [];
@@ -83,17 +87,6 @@
 
                 if (pathname && search && hash) {
                     return [href].concat(pathname, search, hash);
-                }
-            }
-        },
-
-        removeArrayItem = function(arr, item/**/, i) {
-            i = 0;
-            while (i < arr.length) {
-                if (arr[i] === item) {
-                    arr.splice(i, 1);
-                } else {
-                    i++;
                 }
             }
         },
@@ -169,12 +162,11 @@
 
         go: function(href) {
             var i,
-                key,
+                r,
                 args,
                 pendingGo = [],
                 hasMatch = false,
                 newMatches = {},
-                noMatches = {},
                 tmpGo = [],
                 tmpStop = [],
                 tmpError = [],
@@ -189,133 +181,130 @@
 
             pageId++;
 
-            for (key in routes) {
-                val = routes[key];
+            for (r = 0; r < routes.length; r++) {
+                route = routes[r];
 
-                if (key === no || ((args = matchURI(key[0] === 'm', href, val.h)))) {
-                    if (key === no) {
-                        args = [href];
-                        noMatches[key] = true;
+                if (!route.h || ((args = matchURI(href, route.h)))) {
+                    if (route.h) {
+                        newMatches[r] = hasMatch = true;
                     } else {
-                        newMatches[key] = hasMatch = true;
+                        args = [href];
                     }
 
                     (function(args, callbacks, curPageId) {
-                        args.unshift(key in currentMatches);
+                        args.unshift(route.cur);
 
-                        var curKey = key,
-                            isMatch = curKey !== no,
+                        var curVal = route,
+                            isMatch = !!route.h,
                             successArgs = args.slice(0);
 
                         // Success callback is one argument longer (to pass the
                         // data).
                         successArgs.unshift(undefined);
 
-                        for (i = 0; i < callbacks.length; i++) {
-                            if ($.isFunction((tmp = callbacks[i]))) {
-                                tmp = tmp();
-                            }
+                        if (isFunction(callbacks)) {
+                            callbacks = callbacks();
+                        }
 
-                            (function(cb) {
-                                var pushCallback = function(arr, callback) {
-                                    if (callback) {
-                                        arr.push([
-                                            isMatch,
-                                            function() {
-                                                if (curPageId === pageId) {
-                                                    callback.apply(cb, args);
-                                                }
-                                            }
-                                        ]);
-                                    }
-                                };
-
-                                if (cb.go) {
-                                    if (isMatch) {
-                                        waitCount++;
-                                    } else {
-                                        waitCountNoMatch++;
-                                    }
-
-                                    (function() {
-                                        var data;
-
-                                        tmpGo.push([
-                                            isMatch,
-                                            function() {
-                                                data = cb.go.apply(cb, args);
-
-                                                if (data && data.promise && data.then) {
-                                                    data.then(
-                                                        function(d) {
-                                                            if (curPageId === pageId) {
-                                                                data = d;
-                                                                if (--waitCount === 0) {
-                                                                    success();
-                                                                }
-                                                            }
-                                                        },
-
-                                                        function() {
-                                                            if (curPageId === pageId) {
-                                                                stop(true);
-                                                            }
-                                                        }
-                                                    );
-                                                } else if (data || data === undefined) {
-                                                    if (--waitCount === 0) {
-                                                        success();
-                                                    }
-                                                } else {
-                                                    stop(true);
-                                                }
-                                            }
-                                        ]);
-
-                                        if (cb.success) {
-                                            tmpSuccess.push([
-                                                isMatch,
-                                                function() {
-                                                    if (curPageId === pageId) {
-                                                        successArgs[0] = data;
-                                                        cb.success.apply(cb, successArgs);
-                                                    }
-                                                }
-                                            ]);
-                                        }
-                                    })();
-                                } else if (cb.success) {
-                                    tmpSuccess.push([
+                        (function(cb) {
+                            var pushCallback = function(arr, callback) {
+                                if (callback) {
+                                    arr.push([
                                         isMatch,
                                         function() {
                                             if (curPageId === pageId) {
-                                                successArgs[0] = undefined;
-                                                cb.success.apply(cb, successArgs);
+                                                callback.apply(cb, args);
                                             }
                                         }
                                     ]);
                                 }
+                            };
 
-                                pushCallback(tmpStop, cb.stop);
-                                pushCallback(tmpError, cb.error);
-                                pushCallback(tmpComplete, cb.complete);
+                            if (cb.go) {
+                                if (isMatch) {
+                                    waitCount++;
+                                } else {
+                                    waitCountNoMatch++;
+                                }
 
-                                if (cb.leave) {
-                                    // First argument of leave callback is
-                                    // `sameMatch`. It is true when the same
-                                    // route matched new href and href we're
-                                    // leaving).
-                                    tmpLeave.push([
+                                (function() {
+                                    var data;
+
+                                    tmpGo.push([
                                         isMatch,
                                         function() {
-                                            args[0] = curKey in currentMatches;
-                                            cb.leave.apply(cb, args);
+                                            data = cb.go.apply(cb, args);
+
+                                            if (data && data.promise && data.then) {
+                                                data.then(
+                                                    function(d) {
+                                                        if (curPageId === pageId) {
+                                                            data = d;
+                                                            if (--waitCount === 0) {
+                                                                success();
+                                                            }
+                                                        }
+                                                    },
+
+                                                    function() {
+                                                        if (curPageId === pageId) {
+                                                            stop(true);
+                                                        }
+                                                    }
+                                                );
+                                            } else if (data || data === undefined) {
+                                                if (--waitCount === 0) {
+                                                    success();
+                                                }
+                                            } else {
+                                                stop(true);
+                                            }
                                         }
                                     ]);
-                                }
-                            })(tmp);
-                        }
-                    })(args, val.c, pageId);
+
+                                    if (cb.success) {
+                                        tmpSuccess.push([
+                                            isMatch,
+                                            function() {
+                                                if (curPageId === pageId) {
+                                                    successArgs[0] = data;
+                                                    cb.success.apply(cb, successArgs);
+                                                }
+                                            }
+                                        ]);
+                                    }
+                                })();
+                            } else if (cb.success) {
+                                tmpSuccess.push([
+                                    isMatch,
+                                    function() {
+                                        if (curPageId === pageId) {
+                                            successArgs[0] = undefined;
+                                            cb.success.apply(cb, successArgs);
+                                        }
+                                    }
+                                ]);
+                            }
+
+                            pushCallback(tmpStop, cb.stop);
+                            pushCallback(tmpError, cb.error);
+                            pushCallback(tmpComplete, cb.complete);
+
+                            if (cb.leave) {
+                                // First argument of leave callback is
+                                // `sameMatch`. It is true when the same
+                                // route matched new href and href we're
+                                // leaving).
+                                tmpLeave.push([
+                                    isMatch,
+                                    function() {
+                                        args[0] = curVal.cur;
+                                        cb.leave.apply(cb, args);
+                                    }
+                                ]);
+                            }
+                        })(callbacks);
+                    })(args, route.c, pageId);
                 }
             }
 
@@ -325,7 +314,10 @@
             pushFilteredCallbacks(hasMatch, tmpSuccess, pendingSuccess);
             pushFilteredCallbacks(hasMatch, tmpComplete, pendingComplete);
 
-            currentMatches = hasMatch ? newMatches : noMatches;
+            for (i = 0; i < routes.length; i++) {
+                route = routes[i];
+                route.cur = (hasMatch && newMatches[i]) || (!hasMatch && !route.h);
+            }
 
             callCallbacks(pendingLeave);
 
@@ -344,7 +336,7 @@
             initialized = true;
             nopush = false;
 
-            if (hasMatch || noMatches[no]) {
+            if (hasMatch || noMatchCount) {
                 if (!hasMatch) {
                     waitCount = waitCountNoMatch;
                 }
@@ -367,32 +359,35 @@
             //      error: function(href, ...) {},
             //      complete: function(href) {},
             //      leave: function(href) {}}
-            if ((val = routes[(key = getRouteKey(hrefObj))])) {
-                val.c.push(callbacks);
-            } else if (key) {
-                routes[key] = {h: hrefObj, c: [callbacks]};
+            routes.push({h: hrefObj, c: callbacks, cur: false});
+
+            if (!hrefObj) {
+                noMatchCount++;
             }
 
             return $H;
         },
 
         off: function(hrefObj, callbacks) {
-            if (!hrefObj) {
-                routes = {};
+            if (!hrefObj && !callbacks) {
+                routes = [];
             }
 
-            if ((val = routes[(key = getRouteKey(hrefObj))])) {
-                if (callbacks) {
-                    val = val.c;
+            var i = routes.length - 1,
+                r;
 
-                    removeArrayItem(val, callbacks);
+            while (i >= 0) {
+                r = routes[i];
 
-                    if (val.length) {
-                        return $H;
+                if (r.h === hrefObj && (!callbacks || r.c === callbacks)) {
+                    routes.splice(i, 1);
+
+                    if (!r.h) {
+                        noMatchCount--;
                     }
                 }
 
-                delete routes[key];
+                i--;
             }
 
             return $H;

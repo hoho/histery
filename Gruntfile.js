@@ -27,7 +27,7 @@ module.exports = function(grunt) {
         qunit: {
             all: {
                 options: {
-                    urls: ['http://localhost:3000/']
+                    urls: ['http://localhost:3000/', 'http://localhost:3000/types/?hello=world#great']
                 }
             }
         }
@@ -47,13 +47,16 @@ module.exports = function(grunt) {
         webserver.get('/qunit.js', function(req, res) { res.sendfile('node_modules/qunitjs/qunit/qunit.js'); });
         webserver.get('/jquery.js', function(req, res) { res.sendfile('node_modules/jquery-browser/lib/jquery.js'); });
         webserver.get('/test.js', function(req, res) { res.sendfile('test/test.js'); });
+        webserver.get('/test2.js', function(req, res) { res.sendfile('test/test2.js'); });
         webserver.get('/', function(req, res) { res.sendfile('test/index.html'); });
+        webserver.get('/types/', function(req, res) { res.sendfile('test/index2.html'); });
         webserver = webserver.listen(3000);
         grunt.log.writeln('Listening on port 3000');
     });
     grunt.registerTask('testCleanup', function() {
         grunt.log.writeln('Shutting down server on port 3000');
         webserver.close();
+        webserver = null;
     });
     grunt.registerTask('test', ['testInit', 'qunit', 'testCleanup']);
 
