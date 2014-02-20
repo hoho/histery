@@ -72,6 +72,6 @@ test('Types test', function() {
         'Pathname: /types/',
         [true, '/types/', 'y', 'e'],
         [true, '/types/', 'a', 1],
-        [true, '/types/', '/types/', 1, 2, {'3': 4, 's': ''}, '', 5, 6]
+        [false, '/types/', '/types/', 1, 2, {'3': 4, 's': ''}, '', 5, 6]
     ]);
 });

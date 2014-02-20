@@ -1,22 +1,17 @@
 /*!
- * Histery.js v0.5.2, https://github.com/hoho/histery
+ * Histery.js v0.6.0, https://github.com/hoho/histery
  * (c) 2013 Marat Abdullin, MIT license
  */
-(function(window, location, undefined) {
+(function(window, location, document, undefined) {
     var $H,
         history = window.history || {},
         routes = [],
+        dones = [],
         noMatchCount = 0,
-        pendingStop = [],
-        pendingError = [],
-        pendingSuccess = [],
-        pendingComplete = [],
         pendingLeave = [],
         route,
         initialized,
         nopush,
-        pageId = 0,
-        waitCount,
         processed,
         processedTimer,
 
@@ -107,57 +102,84 @@
             }
         },
 
-        success = function() {
-            callCallbacks(pendingSuccess);
-            callCallbacks(pendingComplete);
-            pendingStop = [];
-            pendingError = [];
+        equal = function(a, b) {
+            if (isPlainObject(a) && isPlainObject(b)) {
+                var ak = [],
+                    bk = [],
+                    k;
+
+                for (k in a) {
+                    if (!(k in b)) { return false; }
+                    ak.push(k);
+                }
+
+                for (k in b) {
+                    if (!(k in a)) { return false; }
+                    bk.push(k);
+                }
+
+                if (ak.length === bk.length) {
+                    for (k = 0; k < ak.length; k++) {
+                        if (!equal(a[ak[k]], b[ak[k]])) {
+                            return false;
+                        }
+                    }
+                } else {
+                    return false;
+                }
+
+                return true;
+            } else {
+                return a === b;
+            }
         },
 
-        stop = function(error) {
-            waitCount = 0;
+        compareArgs = function(args1, args2/**/, i, ret) {
+            args1 = args1 || [];
+            args2 = args2 || [];
 
-            if (error) {
-                callCallbacks(pendingError);
-                pendingStop = [];
+            if (args1.length !== args2.length) {
+                ret = false;
             } else {
-                callCallbacks(pendingStop);
-                pendingError = [];
+                ret = true;
+                for (i = 2; i < args1.length; i++) {
+                    if (!equal(args1[i], args2[i])) {
+                        ret = false;
+                        break;
+                    }
+                }
             }
-
-            callCallbacks(pendingComplete);
-            pendingSuccess = [];
-
-            return $H;
+            return ret;
         };
 
     window.$H = $H = {
         run: function() {
-            $(window)
-                .on('popstate hashchange',
-                    function() {
-                        // TODO: Think more about how to skip redundant
-                        //       handlers.
-                        if (!processed || processed !== location.href) {
-                            if (processedTimer) {
-                                window.clearTimeout(processedTimer);
-                            }
-                            processed = location.href;
-                            nopush = true;
-                            $H.go();
-                            processedTimer = window.setTimeout(function() {
-                                processedTimer = undefined;
-                                processed = undefined;
-                            }, 500);
+            var event = document.createEvent('HTMLEvents'),
+
+                handler = function() {
+                    // TODO: Think more about how to skip redundant
+                    //       handlers.
+                    if (!processed || processed !== location.href) {
+                        if (processedTimer) {
+                            window.clearTimeout(processedTimer);
                         }
-                    })
-                .trigger('popstate');
+                        processed = location.href;
+                        nopush = true;
+                        $H.go();
+                        processedTimer = window.setTimeout(function() {
+                            processedTimer = undefined;
+                            processed = undefined;
+                        }, 500);
+                    }
+                };
+
+            window.addEventListener('popstate', handler);
+            window.addEventListener('hashchange', handler);
+
+            event.initEvent('popstate', true, false);
+            window.dispatchEvent(event);
 
             return $H;
-        },
-
-        stop: function() {
-            return stop();
         },
 
         go: function(href) {
@@ -168,18 +190,9 @@
                 hasMatch = false,
                 newMatches = {},
                 tmpGo = [],
-                tmpStop = [],
-                tmpError = [],
-                tmpSuccess = [],
-                tmpComplete = [],
-                tmpLeave = [],
-                waitCountNoMatch = 0;
-
-            stop();
+                tmpLeave = [];
 
             href = getFullURI(href);
-
-            pageId++;
 
             for (r = 0; r < routes.length; r++) {
                 route = routes[r];
@@ -191,132 +204,49 @@
                         args = [href];
                     }
 
-                    (function(args, callbacks, curPageId) {
-                        args.unshift(route.cur);
+                    (function(args, callbacks) {
+                        args.unshift(undefined);
+                        args[0] = compareArgs(route.cur, args);
+                        route.cur = args;
 
                         var curVal = route,
-                            isMatch = !!route.h,
-                            successArgs = args.slice(0);
-
-                        // Success callback is one argument longer (to pass the
-                        // data).
-                        successArgs.unshift(undefined);
+                            isMatch = !!route.h;
 
                         if (isFunction(callbacks)) {
                             callbacks = callbacks();
                         }
 
-                        (function(cb) {
-                            var pushCallback = function(arr, callback) {
-                                if (callback) {
-                                    arr.push([
-                                        isMatch,
-                                        function() {
-                                            if (curPageId === pageId) {
-                                                callback.apply(cb, args);
-                                            }
-                                        }
-                                    ]);
+                        if (callbacks.go) {
+                            tmpGo.push([
+                                isMatch,
+                                function() {
+                                    callbacks.go.apply(callbacks, args);
                                 }
-                            };
+                            ]);
+                        }
 
-                            if (cb.go) {
-                                if (isMatch) {
-                                    waitCount++;
-                                } else {
-                                    waitCountNoMatch++;
+                        if (callbacks.leave) {
+                            // First argument of leave callback is
+                            // `sameMatch`. It is true when the same
+                            // route matched new href and href we're
+                            // leaving).
+                            tmpLeave.push([
+                                isMatch,
+                                function() {
+                                    args[0] = compareArgs(curVal.cur, args);
+                                    callbacks.leave.apply(callbacks, args);
                                 }
-
-                                (function() {
-                                    var data;
-
-                                    tmpGo.push([
-                                        isMatch,
-                                        function() {
-                                            data = cb.go.apply(cb, args);
-
-                                            if (data && data.promise && data.then) {
-                                                data.then(
-                                                    function(d) {
-                                                        if (curPageId === pageId) {
-                                                            data = d;
-                                                            if (--waitCount === 0) {
-                                                                success();
-                                                            }
-                                                        }
-                                                    },
-
-                                                    function() {
-                                                        if (curPageId === pageId) {
-                                                            stop(true);
-                                                        }
-                                                    }
-                                                );
-                                            } else if (data || data === undefined) {
-                                                if (--waitCount === 0) {
-                                                    success();
-                                                }
-                                            } else {
-                                                stop(true);
-                                            }
-                                        }
-                                    ]);
-
-                                    if (cb.success) {
-                                        tmpSuccess.push([
-                                            isMatch,
-                                            function() {
-                                                if (curPageId === pageId) {
-                                                    successArgs[0] = data;
-                                                    cb.success.apply(cb, successArgs);
-                                                }
-                                            }
-                                        ]);
-                                    }
-                                })();
-                            } else if (cb.success) {
-                                tmpSuccess.push([
-                                    isMatch,
-                                    function() {
-                                        if (curPageId === pageId) {
-                                            successArgs[0] = undefined;
-                                            cb.success.apply(cb, successArgs);
-                                        }
-                                    }
-                                ]);
-                            }
-
-                            pushCallback(tmpStop, cb.stop);
-                            pushCallback(tmpError, cb.error);
-                            pushCallback(tmpComplete, cb.complete);
-
-                            if (cb.leave) {
-                                // First argument of leave callback is
-                                // `sameMatch`. It is true when the same
-                                // route matched new href and href we're
-                                // leaving).
-                                tmpLeave.push([
-                                    isMatch,
-                                    function() {
-                                        args[0] = curVal.cur;
-                                        cb.leave.apply(cb, args);
-                                    }
-                                ]);
-                            }
-                        })(callbacks);
-                    })(args, route.c, pageId);
+                            ]);
+                        }
+                    })(args, route.c);
                 }
             }
 
             pushFilteredCallbacks(hasMatch, tmpGo, pendingGo);
-            pushFilteredCallbacks(hasMatch, tmpStop, pendingStop);
-            pushFilteredCallbacks(hasMatch, tmpError, pendingError);
-            pushFilteredCallbacks(hasMatch, tmpSuccess, pendingSuccess);
-            pushFilteredCallbacks(hasMatch, tmpComplete, pendingComplete);
 
             for (i = 0; i < routes.length; i++) {
                 route = routes[i];
-                route.cur = (hasMatch && newMatches[i]) || (!hasMatch && !route.h);
+                route.cur = (hasMatch && newMatches[i]) || (!hasMatch && !route.h) ? route.cur : null;
             }
 
             callCallbacks(pendingLeave);
@@ -336,16 +266,10 @@
             initialized = true;
             nopush = false;
 
-            if (hasMatch || noMatchCount) {
-                if (!hasMatch) {
-                    waitCount = waitCountNoMatch;
-                }
+            callCallbacks(pendingGo);
 
-                if (waitCount) {
-                    callCallbacks(pendingGo);
-                } else {
-                    success();
-                }
+            for (i = 0; i < dones.length; i++) {
+                dones[i](href);
             }
 
             return $H;
@@ -354,43 +278,58 @@
         on: function(hrefObj, callbacks) {
             // callbacks should look like:
             //     {go: function(href, ...) {},
-            //      success: function(data, href, ...) {},
-            //      stop: function(href, ...) {},
-            //      error: function(href, ...) {},
-            //      complete: function(href) {},
             //      leave: function(href) {}}
-            routes.push({h: hrefObj, c: callbacks, cur: false});
+            // hrefObj could be undefined, null, or {pathname, search, hash}.
 
-            if (!hrefObj) {
-                noMatchCount++;
+            if (hrefObj === undefined) {
+                dones.push(callbacks);
+            } else {
+                routes.push({h: hrefObj, c: callbacks, cur: null});
+
+                if (!hrefObj) {
+                    noMatchCount++;
+                }
             }
 
             return $H;
         },
 
         off: function(hrefObj, callbacks) {
-            if (!hrefObj && !callbacks) {
-                routes = [];
-            }
-
-            var i = routes.length - 1,
+            var i,
                 r;
 
-            while (i >= 0) {
-                r = routes[i];
-
-                if (r.h === hrefObj && (!callbacks || r.c === callbacks)) {
-                    routes.splice(i, 1);
-
-                    if (!r.h) {
-                        noMatchCount--;
+            if (hrefObj === undefined) {
+                i = dones.length - 1;
+                while (i >= 0) {
+                    if (dones[i] === callbacks) {
+                        dones.splice(i, 1);
                     }
+
+                    i--;
+                }
+            } else {
+                if (!hrefObj && !callbacks) {
+                    routes = [];
                 }
 
-                i--;
+                i = routes.length - 1;
+
+                while (i >= 0) {
+                    r = routes[i];
+
+                    if (r.h === hrefObj && (!callbacks || r.c === callbacks)) {
+                        routes.splice(i, 1);
+
+                        if (!r.h) {
+                            noMatchCount--;
+                        }
+                    }
+
+                    i--;
+                }
             }
 
             return $H;
         }
     };
-})(window, location);
+})(window, location, document);

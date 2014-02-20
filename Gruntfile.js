@@ -45,7 +45,6 @@ module.exports = function(grunt) {
         webserver.get('/histery.js', function(req, res) { res.sendfile('histery.js'); });
         webserver.get('/qunit.css', function(req, res) { res.sendfile('node_modules/qunitjs/qunit/qunit.css'); });
         webserver.get('/qunit.js', function(req, res) { res.sendfile('node_modules/qunitjs/qunit/qunit.js'); });
-        webserver.get('/jquery.js', function(req, res) { res.sendfile('node_modules/jquery-browser/lib/jquery.js'); });
         webserver.get('/test.js', function(req, res) { res.sendfile('test/test.js'); });
         webserver.get('/test2.js', function(req, res) { res.sendfile('test/test2.js'); });
         webserver.get('/', function(req, res) { res.sendfile('test/index.html'); });

@@ -1,7 +1,7 @@
 {
   "name": "histery",
   "title": "Histery.js",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "homepage": "https://github.com/hoho/histery",
   "authors": [
     "Marat Abdullin <dakota@brokenpipe.ru>"
@@ -22,8 +22,5 @@
     "package.json",
     "bower.json",
     "Gruntfile.js"
-  ],
-  "dependencies": {
-    "jquery": ">=1.10.2"
-  }
+  ]
 }
