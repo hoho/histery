@@ -1,5 +1,4 @@
-Histery.js
-==========
+# Histery [![Build Status](https://travis-ci.org/hoho/histery.svg?branch=master)](https://travis-ci.org/hoho/histery)
 
 Single page app history handler.
 
