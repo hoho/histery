@@ -37,27 +37,27 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-qunit');
 
-    var webserver;
-
     grunt.registerTask('testInit', function() {
-        var express = require('express');
-        webserver = express();
-        webserver.get('/histery.js', function(req, res) { res.sendfile('histery.js'); });
-        webserver.get('/qunit.css', function(req, res) { res.sendfile('node_modules/qunitjs/qunit/qunit.css'); });
-        webserver.get('/qunit.js', function(req, res) { res.sendfile('node_modules/qunitjs/qunit/qunit.js'); });
-        webserver.get('/test.js', function(req, res) { res.sendfile('test/test.js'); });
-        webserver.get('/test2.js', function(req, res) { res.sendfile('test/test2.js'); });
-        webserver.get('/', function(req, res) { res.sendfile('test/index.html'); });
-        webserver.get('/types/', function(req, res) { res.sendfile('test/index2.html'); });
-        webserver = webserver.listen(3000);
+        var http = require('http'),
+            fs = require('fs'),
+            routes = {
+                '/': 'test/index.html',
+                '/qunit.css': 'node_modules/qunitjs/qunit/qunit.css',
+                '/qunit.js': 'node_modules/qunitjs/qunit/qunit.js',
+                '/histery.js': 'histery.js',
+                '/test.js': 'test/test.js',
+                '/test2.js': 'test/test2.js',
+                '/types/?hello=world': 'test/index2.html'
+            };
+
+        http.createServer(function serve(req, res) {
+            fs.createReadStream(routes[req.url]).pipe(res);
+        }).listen(3000, 'localhost');
+
         grunt.log.writeln('Listening on port 3000');
     });
-    grunt.registerTask('testCleanup', function() {
-        grunt.log.writeln('Shutting down server on port 3000');
-        webserver.close();
-        webserver = null;
-    });
-    grunt.registerTask('test', ['testInit', 'qunit', 'testCleanup']);
+
+    grunt.registerTask('test', ['testInit', 'qunit']);
 
     grunt.registerTask('default', ['jshint', 'uglify', 'test']);
 };
