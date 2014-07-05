@@ -51,13 +51,24 @@ module.exports = function(grunt) {
             };
 
         http.createServer(function serve(req, res) {
-            fs.createReadStream(routes[req.url]).pipe(res);
+            var file = routes[req.url];
+
+            if (file) {
+                fs.createReadStream(file).pipe(res);
+            } else {
+                res.statusCode = 404;
+                res.end();
+            }
         }).listen(3000, 'localhost');
 
         grunt.log.writeln('Listening on port 3000');
     });
 
-    grunt.registerTask('test', ['testInit', 'qunit']);
+    grunt.registerTask('wait', function() {
+        this.async();
+    });
 
+    grunt.registerTask('test', ['testInit', 'qunit']);
+    grunt.registerTask('serve', ['testInit', 'wait']);
     grunt.registerTask('default', ['jshint', 'uglify', 'test']);
 };
