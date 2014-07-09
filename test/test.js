@@ -168,6 +168,8 @@ asyncTest('General test', function() {
         // Synchronous history.go(-1) doesn't work, so here are a bunch of
         // setTimeouts.
 
+        testResult = [];
+
         function back(n) {
             window.history.go(n || -1);
             return false;
@@ -187,12 +189,27 @@ asyncTest('General test', function() {
                 ok($H.state('page5') === undefined);
                 ok($H.state('page7') === undefined);
 
+                deepEqual(testResult, [
+                    'leave2: sameMatch: true, href: /',
+                    'go2: sameMatch: true, href: /',
+                    'done: /'
+                ]);
+                testResult = [];
+
                 back();
 
                 setTimeout(function () {
                     deepEqual($H.state('page5'), {page5: true});
                     ok($H.state('page4') === undefined);
                     ok($H.state('page6') === undefined);
+
+                    deepEqual(testResult, [
+                        'leave2: sameMatch: false, href: /',
+                        'no match: sameMatch: false, href: /ololo/piupiu2',
+                        'no match go: sameMatch: false, href: /ololo/piupiu2',
+                        'done: /ololo/piupiu2'
+                    ]);
+                    testResult = [];
 
                     back(-2);
 
@@ -202,6 +219,13 @@ asyncTest('General test', function() {
                         ok($H.state('page2') === undefined);
                         ok($H.state('page4') === undefined);
 
+                        deepEqual(testResult, [
+                            'no match leave: sameMatch: false, href: /ololo/piupiu2',
+                            'go1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
+                            'done: /some/reg/expr'
+                        ]);
+                        testResult = [];
+
                         back(-3);
 
                         setTimeout(function () {
@@ -209,11 +233,25 @@ asyncTest('General test', function() {
                             ok($H.state('page3_1') === undefined);
                             ok($H.state('page2') === undefined);
 
+                            deepEqual(testResult, [
+                                'leave1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
+                                'go2: sameMatch: false, href: /',
+                                'done: /'
+                            ]);
+                            testResult = [];
+
                             forward(7);
 
                             setTimeout(function () {
                                 deepEqual($H.state('page7'), true);
                                 ok($H.state('page1') === undefined);
+
+                                deepEqual(testResult, [
+                                    'leave2: sameMatch: true, href: /',
+                                    'go2: sameMatch: true, href: /',
+                                    'done: /'
+                                ]);
+
                                 start();
                             }, PAUSE);
                         }, PAUSE);
