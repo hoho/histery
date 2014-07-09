@@ -12,8 +12,8 @@
         route,
         initialized,
         nopush,
-        processed,
-        processedTimer,
+        curState,
+        curHref,
 
         objConstructor = {}.constructor,
 
@@ -153,31 +153,39 @@
         };
 
     window.$H = $H = {
+        state: function(key, value) {
+            if (value === undefined) {
+                return curState[key];
+            }
+
+            if (value === null) {
+                delete curState[key];
+            } else {
+                curState[key] = value;
+            }
+
+            history.replaceState && history.replaceState(curState, null);
+        },
+
         run: function() {
             var event = document.createEvent('HTMLEvents'),
 
-                handler = function() {
-                    // TODO: Think more about how to skip redundant
-                    //       handlers.
-                    if (!processed || processed !== location.href) {
-                        if (processedTimer) {
-                            window.clearTimeout(processedTimer);
-                        }
-                        processed = location.href;
+                handler = function(e) {
+                    if (e.type === 'popstate' || curHref !== location.href) {
                         nopush = true;
+                        curState = history.state || {};
                         $H.go();
-                        processedTimer = window.setTimeout(function() {
-                            processedTimer = undefined;
-                            processed = undefined;
-                        }, 500);
                     }
+
+                    curHref = e.type === 'popstate' ? location.href : undefined;
                 };
 
-            window.addEventListener('popstate', handler);
-            window.addEventListener('hashchange', handler);
+            addEventListener('popstate', handler);
+            addEventListener('hashchange', handler);
 
             event.initEvent('popstate', true, false);
-            window.dispatchEvent(event);
+            /* global dispatchEvent */
+            dispatchEvent(event);
 
             return $H;
         },
@@ -256,7 +264,7 @@
             if (initialized) {
                 if (history.pushState) {
                     if (!nopush) {
-                        history.pushState(null, null, href);
+                        history.pushState((curState = {}), null, href);
                     }
                 } else {
                     location.href = href;
@@ -299,22 +307,17 @@
                 r;
 
             if (hrefObj === undefined) {
-                i = dones.length - 1;
-                while (i >= 0) {
+                for (i = dones.length; i--;) {
                     if (dones[i] === callbacks) {
                         dones.splice(i, 1);
                     }
-
-                    i--;
                 }
             } else {
                 if (!hrefObj && !callbacks) {
                     routes = [];
                 }
 
-                i = routes.length - 1;
-
-                while (i >= 0) {
+                for (i = routes.length; i--;) {
                     r = routes[i];
 
                     if (r.h === hrefObj && (!callbacks || r.c === callbacks)) {
@@ -324,8 +327,6 @@
                             noMatchCount--;
                         }
                     }
-
-                    i--;
                 }
             }
 

@@ -1,4 +1,4 @@
-test('General test', function() {
+asyncTest('General test', function() {
     var testResult;
 
     $H.on(/^\/some\/(reg)\/(expr)$/, {
@@ -47,7 +47,7 @@ test('General test', function() {
         {
             pathname: /^\/(test)$/,
             search: /^param=(pppp)$/,
-            hash: /^baba(bebe)$/
+            hash: /^baba(bebe)(?:2)?$/
         },
 
         {
@@ -86,6 +86,7 @@ test('General test', function() {
 
     testResult = [];
     $H.run();
+    $H.state('page1', true);
 
     deepEqual(testResult, [
         'go2: sameMatch: false, href: /',
@@ -94,6 +95,7 @@ test('General test', function() {
 
     testResult = [];
     $H.go('/test?param=pppp#bababebe');
+    $H.state('page2', {page2: true});
 
     deepEqual(testResult, [
         'leave2: sameMatch: false, href: /',
@@ -102,16 +104,24 @@ test('General test', function() {
     ]);
 
     testResult = [];
+    $H.go('/test?param=pppp#bababebe2');
+    $H.state('page21', true);
+
+
+    testResult = [];
     $H.go('/some/reg/expr');
+    $H.state('page3_1', {page3: true});
+    $H.state('page3_2', {page3: 'yes'});
 
     deepEqual(testResult, [
-        'leave3: sameMatch: false, href: /test?param=pppp#bababebe, rem1: test, rem2: pppp, rem3: bebe',
+        'leave3: sameMatch: false, href: /test?param=pppp#bababebe2, rem1: test, rem2: pppp, rem3: bebe',
         'go1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
         'done: /some/reg/expr'
     ]);
 
     testResult = [];
     $H.go('/ololo/piupiu');
+    $H.state('page4', true);
 
     deepEqual(testResult, [
         'leave1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
@@ -122,6 +132,7 @@ test('General test', function() {
 
     testResult = [];
     $H.go('/ololo/piupiu2');
+    $H.state('page5', {page5: true});
 
     deepEqual(testResult, [
         'no match leave: sameMatch: true, href: /ololo/piupiu',
@@ -132,6 +143,7 @@ test('General test', function() {
 
     testResult = [];
     $H.go('/');
+    $H.state('page6', true);
 
     deepEqual(testResult, [
         'no match leave: sameMatch: false, href: /ololo/piupiu2',
@@ -141,10 +153,76 @@ test('General test', function() {
 
     testResult = [];
     $H.go('/');
+    $H.state('page7', true);
 
     deepEqual(testResult, [
         'leave2: sameMatch: true, href: /',
         'go2: sameMatch: true, href: /',
         'done: /'
     ]);
+
+    deepEqual($H.state('page7'), true);
+    ok($H.state('page6') === undefined);
+
+    if (!window._phantom) {
+        // Synchronous history.go(-1) doesn't work, so here are a bunch of
+        // setTimeouts.
+
+        function back(n) {
+            window.history.go(n || -1);
+            return false;
+        }
+
+        function forward(n) {
+            window.history.go(n || 1);
+            return false;
+        }
+
+        var PAUSE = 500;
+        setTimeout(function () {
+            back();
+
+            setTimeout(function () {
+                deepEqual($H.state('page6'), true);
+                ok($H.state('page5') === undefined);
+                ok($H.state('page7') === undefined);
+
+                back();
+
+                setTimeout(function () {
+                    deepEqual($H.state('page5'), {page5: true});
+                    ok($H.state('page4') === undefined);
+                    ok($H.state('page6') === undefined);
+
+                    back(-2);
+
+                    setTimeout(function () {
+                        deepEqual($H.state('page3_1'), {page3: true});
+                        deepEqual($H.state('page3_2'), {page3: 'yes'});
+                        ok($H.state('page2') === undefined);
+                        ok($H.state('page4') === undefined);
+
+                        back(-3);
+
+                        setTimeout(function () {
+                            deepEqual($H.state('page1'), true);
+                            ok($H.state('page3_1') === undefined);
+                            ok($H.state('page2') === undefined);
+
+                            forward(7);
+
+                            setTimeout(function () {
+                                deepEqual($H.state('page7'), true);
+                                ok($H.state('page1') === undefined);
+                                start();
+                            }, PAUSE);
+                        }, PAUSE);
+                    }, PAUSE);
+                }, PAUSE);
+            }, PAUSE);
+        }, PAUSE);
+    } else {
+        console.log('WARNING: History navigation is broken in PhantomJS, run tests in browser to test state');
+        start();
+    }
 });
