@@ -116,3 +116,44 @@ $H.go('/');
 > leave2: sameMatch: true, href: /
 > go2: sameMatch: true, href: /
 ```
+
+## State
+
+There is `$H.state(key, [value])` method to set or get state entries for
+current page.
+
+```js
+// Note that $H.state() uses browser's history.state internally and will throw
+// DataCloneError exception if you'll try to store something that can't be
+// serialized.
+$H.state('key1', {some: 'serializable', value: true});
+
+console.log($H.state('key1'));
+> Object {some: "serializable", value: true}
+
+// Go to another page.
+$H.go('/another/uri');
+
+console.log($H.state('key1'));
+> undefined
+
+$H.state('key2', 12345);
+
+console.log($H.state('key2'));
+> 12345
+
+// Go back in history (same to back button in browser).
+window.history.back();
+
+console.log($H.state('key2'));
+> undefined
+
+console.log($H.state('key1'));
+> Object {some: "serializable", value: true}
+
+// Go forward again (same to forward button in browser).
+window.history.forward();
+
+console.log($H.state('key2'));
+> 12345
+```
