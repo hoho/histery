@@ -1,5 +1,5 @@
 /*!
- * Histery.js v0.7.0, https://github.com/hoho/histery
+ * Histery.js v0.7.1, https://github.com/hoho/histery
  * (c) 2013 Marat Abdullin, MIT license
  */
 (function(window, location, document, undefined) {
@@ -102,19 +102,22 @@
             }
         },
 
-        equal = function(a, b) {
+        equal = function(a, b/**/, ak, bk, k) {
             if (isPlainObject(a) && isPlainObject(b)) {
-                var ak = [],
-                    bk = [],
-                    k;
+                ak = [];
+                bk = [];
 
                 for (k in a) {
-                    if (!(k in b)) { return false; }
+                    if (!(k in b)) {
+                        return false;
+                    }
                     ak.push(k);
                 }
 
                 for (k in b) {
-                    if (!(k in a)) { return false; }
+                    if (!(k in a)) {
+                        return false;
+                    }
                     bk.push(k);
                 }
 
@@ -126,6 +129,14 @@
                     }
                 } else {
                     return false;
+                }
+
+                return true;
+            } else if ((a instanceof Array) && (b instanceof Array) && (a.length === b.length)) {
+                for (k = a.length; k--;) {
+                    if (!equal(a[k], b[k])) {
+                        return false;
+                    }
                 }
 
                 return true;

@@ -37,7 +37,7 @@ test('Types test', function() {
         {
             pathname: function(pathname) { return [pathname, 1, 2]; },
             search: function(search) { return {s: search, 3: 4}; },
-            hash: function(hash) { return [hash, 5, 6]; }
+            hash: function(hash) { return [hash, 5, [66, 77, {deep: 88}]]; }
         },
         go
     );
@@ -59,7 +59,7 @@ test('Types test', function() {
         [false, '/types/?hello=world#great', 'a', 1],
         [false, '/types/?hello=world#great'],
         [false, '/types/?hello=world#great', 't', 's', 'world', 'at'],
-        [false, '/types/?hello=world#great', '/types/', 1, 2, {'3': 4, 's': 'hello=world'}, 'great', 5, 6]
+        [false, '/types/?hello=world#great', '/types/', 1, 2, {'3': 4, 's': 'hello=world'}, 'great', 5, [66, 77, {deep: 88}]]
     ]);
 
     testResult = [];
@@ -72,6 +72,17 @@ test('Types test', function() {
         'Pathname: /types/',
         [true, '/types/', 'y', 'e'],
         [true, '/types/', 'a', 1],
-        [false, '/types/', '/types/', 1, 2, {'3': 4, 's': ''}, '', 5, 6]
+        [false, '/types/', '/types/', 1, 2, {'3': 4, 's': ''}, '', 5, [66, 77, {deep: 88}]]
+    ]);
+
+    testResult = [];
+
+    $H.go('/types/');
+
+    deepEqual(testResult, [
+        'Pathname: /types/',
+        [true, '/types/', 'y', 'e'],
+        [true, '/types/', 'a', 1],
+        [true, '/types/', '/types/', 1, 2, {'3': 4, 's': ''}, '', 5, [66, 77, {deep: 88}]]
     ]);
 });
