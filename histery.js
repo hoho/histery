@@ -1,6 +1,6 @@
 /*!
  * Histery.js v0.7.1, https://github.com/hoho/histery
- * (c) 2013 Marat Abdullin, MIT license
+ * (c) 2013-2014 Marat Abdullin, MIT license
  */
 (function(window, location, document, undefined) {
     var $H,
