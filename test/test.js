@@ -1,5 +1,6 @@
 asyncTest('General test', function() {
-    var testResult;
+    var testResult,
+        goRet;
 
     $H.on(/^\/some\/(reg)\/(expr)$/, {
         go: function(sameMatch, href, rem1, rem2) {
@@ -94,9 +95,10 @@ asyncTest('General test', function() {
     ]);
 
     testResult = [];
-    $H.go('/test?param=pppp#bababebe');
+    goRet = $H.go('/test?param=pppp#bababebe');
     $H.state('page2', {page2: true});
 
+    deepEqual(goRet, true);
     deepEqual(testResult, [
         'leave2: sameMatch: false, href: /',
         'go3: sameMatch: false, href: /test?param=pppp#bababebe, rem1: test, rem2: pppp, rem3: bebe',
@@ -104,15 +106,16 @@ asyncTest('General test', function() {
     ]);
 
     testResult = [];
-    $H.go('/test?param=pppp#bababebe2');
+    goRet = $H.go('/test?param=pppp#bababebe2');
     $H.state('page21', true);
-
+    deepEqual(goRet, true);
 
     testResult = [];
-    $H.go('/some/reg/expr');
+    goRet = $H.go('/some/reg/expr');
     $H.state('page3_1', {page3: true});
     $H.state('page3_2', {page3: 'yes'});
 
+    deepEqual(goRet, true);
     deepEqual(testResult, [
         'leave3: sameMatch: false, href: /test?param=pppp#bababebe2, rem1: test, rem2: pppp, rem3: bebe',
         'go1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
@@ -120,9 +123,10 @@ asyncTest('General test', function() {
     ]);
 
     testResult = [];
-    $H.go('/ololo/piupiu');
+    goRet = $H.go('/ololo/piupiu');
     $H.state('page4', true);
 
+    deepEqual(goRet, true);
     deepEqual(testResult, [
         'leave1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
         'no match: sameMatch: false, href: /ololo/piupiu',
@@ -131,9 +135,10 @@ asyncTest('General test', function() {
     ]);
 
     testResult = [];
-    $H.go('/ololo/piupiu2');
+    goRet = $H.go('/ololo/piupiu2');
     $H.state('page5', {page5: true});
 
+    deepEqual(goRet, true);
     deepEqual(testResult, [
         'no match leave: sameMatch: true, href: /ololo/piupiu',
         'no match: sameMatch: true, href: /ololo/piupiu2',
@@ -142,9 +147,10 @@ asyncTest('General test', function() {
     ]);
 
     testResult = [];
-    $H.go('/');
+    goRet = $H.go('/');
     $H.state('page6', true);
 
+    deepEqual(goRet, true);
     deepEqual(testResult, [
         'no match leave: sameMatch: false, href: /ololo/piupiu2',
         'go2: sameMatch: false, href: /',
@@ -152,9 +158,10 @@ asyncTest('General test', function() {
     ]);
 
     testResult = [];
-    $H.go('/');
+    goRet = $H.go('/');
     $H.state('page7', true);
 
+    deepEqual(goRet, true);
     deepEqual(testResult, [
         'leave2: sameMatch: true, href: /',
         'go2: sameMatch: true, href: /',

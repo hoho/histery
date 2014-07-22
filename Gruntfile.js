@@ -27,7 +27,11 @@ module.exports = function(grunt) {
         qunit: {
             all: {
                 options: {
-                    urls: ['http://localhost:3000/', 'http://localhost:3000/types/?hello=world#great']
+                    urls: [
+                        'http://localhost:3000/',
+                        'http://localhost:3000/types/?hello=world#great',
+                        'http://localhost:3000/dry'
+                    ]
                 }
             }
         }
@@ -47,7 +51,9 @@ module.exports = function(grunt) {
                 '/histery.js': 'histery.js',
                 '/test.js': 'test/test.js',
                 '/test2.js': 'test/test2.js',
-                '/types/?hello=world': 'test/index2.html'
+                '/test3.js': 'test/test3.js',
+                '/types/?hello=world': 'test/index2.html',
+                '/dry': 'test/index3.html'
             };
 
         http.createServer(function serve(req, res) {

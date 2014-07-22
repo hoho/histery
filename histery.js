@@ -1,5 +1,5 @@
 /*!
- * Histery.js v0.7.1, https://github.com/hoho/histery
+ * Histery.js v0.7.2, https://github.com/hoho/histery
  * (c) 2013-2014 Marat Abdullin, MIT license
  */
 (function(window, location, document, undefined) {
@@ -201,7 +201,7 @@
             return $H;
         },
 
-        go: function(href) {
+        go: function(href, dry) {
             var i,
                 r,
                 args,
@@ -209,7 +209,8 @@
                 hasMatch = false,
                 newMatches = {},
                 tmpGo = [],
-                tmpLeave = [];
+                tmpLeave = [],
+                ret;
 
             href = getFullURI(href);
 
@@ -226,7 +227,7 @@
                     (function(args, callbacks) {
                         args.unshift(undefined);
                         args[0] = compareArgs(route.cur, args);
-                        route.cur = args;
+                        if (!dry) { route.cur = args; }
 
                         var curVal = route,
                             isMatch = !!route.h;
@@ -263,35 +264,39 @@
 
             pushFilteredCallbacks(hasMatch, tmpGo, pendingGo);
 
-            for (i = 0; i < routes.length; i++) {
-                route = routes[i];
-                route.cur = (hasMatch && newMatches[i]) || (!hasMatch && !route.h) ? route.cur : null;
-            }
+            ret = pendingGo.length > 0;
 
-            callCallbacks(pendingLeave);
+            if (!dry) {
+                for (i = 0; i < routes.length; i++) {
+                    route = routes[i];
+                    route.cur = (hasMatch && newMatches[i]) || (!hasMatch && !route.h) ? route.cur : null;
+                }
 
-            pushFilteredCallbacks(hasMatch, tmpLeave, pendingLeave);
+                callCallbacks(pendingLeave);
 
-            if (initialized) {
-                if (history.pushState) {
-                    if (!nopush) {
-                        history.pushState((curState = {}), null, href);
+                pushFilteredCallbacks(hasMatch, tmpLeave, pendingLeave);
+
+                if (initialized) {
+                    if (history.pushState && pendingGo.length) {
+                        if (!nopush) {
+                            history.pushState((curState = {}), null, href);
+                        }
+                    } else {
+                        location.href = href;
                     }
-                } else {
-                    location.href = href;
+                }
+
+                initialized = true;
+                nopush = false;
+
+                callCallbacks(pendingGo);
+
+                for (i = 0; i < dones.length; i++) {
+                    dones[i](href);
                 }
             }
 
-            initialized = true;
-            nopush = false;
-
-            callCallbacks(pendingGo);
-
-            for (i = 0; i < dones.length; i++) {
-                dones[i](href);
-            }
-
-            return $H;
+            return ret;
         },
 
         on: function(hrefObj, callbacks) {

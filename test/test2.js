@@ -1,6 +1,7 @@
 test('Types test', function() {
     var testResult = [],
-        go = {go: function() { testResult.push(Array.prototype.slice.call(arguments, 0)); }};
+        go = {go: function() { testResult.push(Array.prototype.slice.call(arguments, 0)); }},
+        goRet;
 
 
     $H.on('/types/', go);
@@ -66,8 +67,9 @@ test('Types test', function() {
 
     $H.off('/types/', go);
 
-    $H.go('/types/');
+    goRet = $H.go('/types/');
 
+    deepEqual(goRet, true);
     deepEqual(testResult, [
         'Pathname: /types/',
         [true, '/types/', 'y', 'e'],
@@ -77,8 +79,9 @@ test('Types test', function() {
 
     testResult = [];
 
-    $H.go('/types/');
+    goRet = $H.go('/types/');
 
+    deepEqual(goRet, true);
     deepEqual(testResult, [
         'Pathname: /types/',
         [true, '/types/', 'y', 'e'],
