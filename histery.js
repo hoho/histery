@@ -49,10 +49,6 @@
             } else if (isFunction(matcher)) {
                 m = 1;
                 ret = matcher(part);
-
-                if (ret && !(ret instanceof Array)) {
-                    ret = [ret];
-                }
             } else if (part === matcher) {
                 m = 1;
                 ret = [];
