@@ -14,6 +14,7 @@ test('Types test', function() {
         },
         go
     );
+    $H.on('/rewrite/test', '/dry3'); // rewrite
     $H.run();
 
     goRet = $H.go('/dry2', true);
@@ -71,5 +72,27 @@ test('Types test', function() {
         [false, '/dry3', 'dry3'],
         'Pathname: /dry4',
         [false, '/dry4', true]
+    ]);
+    testResult = [];
+
+    goRet = $H.go('/rewrite/test');
+    deepEqual(goRet, true);
+    deepEqual(location.pathname, '/rewrite/test');
+
+    goRet = $H.go('/rewrite/test');
+    deepEqual(goRet, true);
+    deepEqual(location.pathname, '/rewrite/test');
+
+    goRet = $H.go('/dry3');
+    deepEqual(goRet, true);
+    deepEqual(location.pathname, '/dry3');
+
+    deepEqual(testResult, [
+        'Pathname: /dry3',
+        [false, '/dry3', 'dry3'],
+        'Pathname: /dry3',
+        [true, '/dry3', 'dry3'],
+        'Pathname: /dry3',
+        [true, '/dry3', 'dry3']
     ]);
 });

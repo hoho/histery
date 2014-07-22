@@ -1,11 +1,12 @@
 /*!
- * Histery.js v0.7.2, https://github.com/hoho/histery
+ * Histery.js v0.7.3, https://github.com/hoho/histery
  * (c) 2013-2014 Marat Abdullin, MIT license
  */
 (function(window, location, document, undefined) {
     var $H,
         history = window.history || {},
         routes = [],
+        rewrites = {},
         dones = [],
         noMatchCount = 0,
         pendingLeave = [],
@@ -19,6 +20,10 @@
 
         isFunction = function(val) {
             return typeof val === 'function';
+        },
+
+        isString = function(val) {
+            return typeof val === 'string';
         },
 
         isPlainObject = function(val) {
@@ -213,8 +218,8 @@
             for (r = 0; r < routes.length; r++) {
                 route = routes[r];
 
-                if (!route.h || ((args = matchURI(href, route.h)))) {
-                    if (route.h) {
+                if (!((i = route.h)) || ((args = matchURI(rewrites[href] || href, i)))) {
+                    if (i) {
                         newMatches[r] = hasMatch = true;
                     } else {
                         args = [href];
@@ -226,7 +231,7 @@
                         if (!dry) { route.cur = args; }
 
                         var curVal = route,
-                            isMatch = !!route.h;
+                            isMatch = !!i;
 
                         if (isFunction(callbacks)) {
                             callbacks = callbacks();
@@ -304,7 +309,12 @@
             if (hrefObj === undefined) {
                 dones.push(callbacks);
             } else {
-                routes.push({h: hrefObj, c: callbacks, cur: null});
+                if (isString(hrefObj) && isString(callbacks)) {
+                    // It's a rewrite.
+                    rewrites[getFullURI(hrefObj)] = getFullURI(callbacks);
+                } else {
+                    routes.push({h: hrefObj, c: callbacks, cur: null});
+                }
 
                 if (!hrefObj) {
                     noMatchCount++;
@@ -318,7 +328,9 @@
             var i,
                 r;
 
-            if (hrefObj === undefined) {
+            if (isString(hrefObj) && isString(callbacks) && rewrites[(i = getFullURI(hrefObj))] === getFullURI(callbacks)) {
+                delete rewrites[i];
+            } else if (hrefObj === undefined) {
                 for (i = dones.length; i--;) {
                     if (dones[i] === callbacks) {
                         dones.splice(i, 1);
