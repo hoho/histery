@@ -1,4 +1,4 @@
-test('Types test', function() {
+test('Dry test', function() {
     var testResult = [],
         go = {go: function() { testResult.push(Array.prototype.slice.call(arguments, 0)); }},
         goRet;

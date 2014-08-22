@@ -74,7 +74,22 @@ module.exports = function(grunt) {
         this.async();
     });
 
+    grunt.registerTask('assert-version', function() {
+        var assertVersion = require('assert-version'),
+            error;
+
+        error = assertVersion({
+            'histery.js': '',
+            'bower.json': ''
+        });
+
+        if (error) {
+            grunt.log.error(error);
+            return false;
+        }
+    });
+
     grunt.registerTask('test', ['testInit', 'qunit']);
     grunt.registerTask('serve', ['testInit', 'wait']);
-    grunt.registerTask('default', ['jshint', 'uglify', 'test']);
+    grunt.registerTask('default', ['jshint', 'assert-version', 'uglify', 'test']);
 };

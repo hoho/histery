@@ -1,5 +1,5 @@
 /*!
- * Histery.js v0.7.3, https://github.com/hoho/histery
+ * Histery.js v0.7.4, https://github.com/hoho/histery
  * (c) 2013-2014 Marat Abdullin, MIT license
  */
 (function(window, location, document, undefined) {
@@ -181,7 +181,6 @@
 
         run: function() {
             var event = document.createEvent('HTMLEvents'),
-
                 handler = function(e) {
                     if (e.type === 'popstate' || curHref !== location.href) {
                         nopush = true;
@@ -202,7 +201,7 @@
             return $H;
         },
 
-        go: function(href, dry) {
+        go: function(href, dry, replace) {
             var i,
                 r,
                 args,
@@ -280,7 +279,7 @@
                 if (initialized) {
                     if (history.pushState && pendingGo.length) {
                         if (!nopush) {
-                            history.pushState((curState = {}), null, href);
+                            history[replace ? 'replaceState' : 'pushState']((curState = {}), null, href);
                         }
                     } else {
                         location.href = href;

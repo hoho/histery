@@ -188,10 +188,10 @@ asyncTest('General test', function() {
         }
 
         var PAUSE = 500;
-        setTimeout(function () {
+        setTimeout(function() {
             back();
 
-            setTimeout(function () {
+            setTimeout(function() {
                 deepEqual($H.state('page6'), true);
                 ok($H.state('page5') === undefined);
                 ok($H.state('page7') === undefined);
@@ -205,7 +205,7 @@ asyncTest('General test', function() {
 
                 back();
 
-                setTimeout(function () {
+                setTimeout(function() {
                     deepEqual($H.state('page5'), {page5: true});
                     ok($H.state('page4') === undefined);
                     ok($H.state('page6') === undefined);
@@ -220,7 +220,7 @@ asyncTest('General test', function() {
 
                     back(-2);
 
-                    setTimeout(function () {
+                    setTimeout(function() {
                         deepEqual($H.state('page3_1'), {page3: true});
                         deepEqual($H.state('page3_2'), {page3: 'yes'});
                         ok($H.state('page2') === undefined);
@@ -235,7 +235,7 @@ asyncTest('General test', function() {
 
                         back(-3);
 
-                        setTimeout(function () {
+                        setTimeout(function() {
                             deepEqual($H.state('page1'), true);
                             ok($H.state('page3_1') === undefined);
                             ok($H.state('page2') === undefined);
@@ -249,7 +249,7 @@ asyncTest('General test', function() {
 
                             forward(7);
 
-                            setTimeout(function () {
+                            setTimeout(function() {
                                 deepEqual($H.state('page7'), true);
                                 ok($H.state('page1') === undefined);
 
@@ -258,8 +258,44 @@ asyncTest('General test', function() {
                                     'go2: sameMatch: true, href: /',
                                     'done: /'
                                 ]);
+                                testResult = [];
 
-                                start();
+                                goRet = $H.go('/some/reg/expr');
+
+                                deepEqual(goRet, true);
+                                deepEqual(testResult, [
+                                    'leave2: sameMatch: false, href: /',
+                                    'go1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
+                                    'done: /some/reg/expr'
+                                ]);
+                                testResult = [];
+
+                                // Replace current history item.
+                                goRet = $H.go('/test?param=pppp#bababebe', false, true);
+
+                                deepEqual(goRet, true);
+                                deepEqual(testResult, [
+                                    'leave1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
+                                    'go3: sameMatch: false, href: /test?param=pppp#bababebe, rem1: test, rem2: pppp, rem3: bebe',
+                                    'done: /test?param=pppp#bababebe'
+                                ]);
+                                testResult = [];
+
+                                back();
+
+                                setTimeout(function() {
+                                    deepEqual($H.state('page7'), true);
+                                    ok($H.state('page1') === undefined);
+
+                                    deepEqual(testResult, [
+                                        'leave3: sameMatch: false, href: /test?param=pppp#bababebe, rem1: test, rem2: pppp, rem3: bebe',
+                                        'go2: sameMatch: false, href: /',
+                                        'done: /'
+                                    ]);
+                                    testResult = [];
+
+                                    start();
+                                }, PAUSE);
                             }, PAUSE);
                         }, PAUSE);
                     }, PAUSE);

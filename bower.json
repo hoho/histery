@@ -1,26 +1,26 @@
 {
-  "name": "histery",
-  "title": "Histery.js",
-  "version": "0.7.3",
-  "homepage": "https://github.com/hoho/histery",
-  "authors": [
-    "Marat Abdullin <dakota@brokenpipe.ru>"
-  ],
-  "description": "Single page app history handler",
-  "main": "histery.js",
-  "keywords": [
-    "browser",
-    "history"
-  ],
-  "license": "MIT",
-  "ignore": [
-    "**/.*",
-    "node_modules",
-    "bower_components",
-    "test",
-    "*.md",
-    "package.json",
-    "bower.json",
-    "Gruntfile.js"
-  ]
+    "name": "histery",
+    "title": "Histery.js",
+    "version": "0.7.4",
+    "homepage": "https://github.com/hoho/histery",
+    "authors": [
+        "Marat Abdullin <dakota@brokenpipe.ru>"
+    ],
+    "description": "Single page app history handler",
+    "main": "histery.js",
+    "keywords": [
+        "browser",
+        "history"
+    ],
+    "license": "MIT",
+    "ignore": [
+        "**/.*",
+        "node_modules",
+        "bower_components",
+        "test",
+        "*.md",
+        "package.json",
+        "bower.json",
+        "Gruntfile.js"
+    ]
 }
