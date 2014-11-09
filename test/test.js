@@ -2,6 +2,16 @@ asyncTest('General test', function() {
     var testResult,
         goRet;
 
+    deepEqual($H.eq(
+        {aa: 11, bb: "22", cc: true, dd: null, ee: [1, 2, 3], ff: {xxx: 1, zzz: 2}},
+        {aa: 11, bb: "22", cc: true, dd: null, ee: [1, 2, 3], ff: {xxx: 1, zzz: 2}}
+    ), true);
+
+    deepEqual($H.eq(
+        {},
+        []
+    ), false);
+
     $H.on(/^\/some\/(reg)\/(expr)$/, {
         go: function(sameMatch, href, rem1, rem2) {
             // This callback will be called when you do $H.go('/some/reg/expr');

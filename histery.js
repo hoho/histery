@@ -1,5 +1,5 @@
 /*!
- * Histery.js v0.7.4, https://github.com/hoho/histery
+ * Histery.js v0.7.5, https://github.com/hoho/histery
  * (c) 2013-2014 Marat Abdullin, MIT license
  */
 (function(window, location, document, undefined) {
@@ -103,49 +103,6 @@
             }
         },
 
-        equal = function(a, b/**/, ak, bk, k) {
-            if (isPlainObject(a) && isPlainObject(b)) {
-                ak = [];
-                bk = [];
-
-                for (k in a) {
-                    if (!(k in b)) {
-                        return false;
-                    }
-                    ak.push(k);
-                }
-
-                for (k in b) {
-                    if (!(k in a)) {
-                        return false;
-                    }
-                    bk.push(k);
-                }
-
-                if (ak.length === bk.length) {
-                    for (k = 0; k < ak.length; k++) {
-                        if (!equal(a[ak[k]], b[ak[k]])) {
-                            return false;
-                        }
-                    }
-                } else {
-                    return false;
-                }
-
-                return true;
-            } else if ((a instanceof Array) && (b instanceof Array) && (a.length === b.length)) {
-                for (k = a.length; k--;) {
-                    if (!equal(a[k], b[k])) {
-                        return false;
-                    }
-                }
-
-                return true;
-            } else {
-                return a === b;
-            }
-        },
-
         compareArgs = function(args1, args2/**/, i, ret) {
             args1 = args1 || [];
             args2 = args2 || [];
@@ -155,7 +112,7 @@
             } else {
                 ret = true;
                 for (i = 2; i < args1.length; i++) {
-                    if (!equal(args1[i], args2[i])) {
+                    if (!$H.eq(args1[i], args2[i])) {
                         ret = false;
                         break;
                     }
@@ -354,6 +311,53 @@
             }
 
             return $H;
+        },
+
+        eq: function eq(a, b) {
+            var ak,
+                bk,
+                k;
+
+            if (isPlainObject(a) && isPlainObject(b)) {
+                ak = [];
+                bk = [];
+
+                for (k in a) {
+                    if (!(k in b)) {
+                        return false;
+                    }
+                    ak.push(k);
+                }
+
+                for (k in b) {
+                    if (!(k in a)) {
+                        return false;
+                    }
+                    bk.push(k);
+                }
+
+                if (ak.length === bk.length) {
+                    for (k = 0; k < ak.length; k++) {
+                        if (!eq(a[ak[k]], b[ak[k]])) {
+                            return false;
+                        }
+                    }
+                } else {
+                    return false;
+                }
+
+                return true;
+            } else if ((a instanceof Array) && (b instanceof Array) && (a.length === b.length)) {
+                for (k = a.length; k--;) {
+                    if (!eq(a[k], b[k])) {
+                        return false;
+                    }
+                }
+
+                return true;
+            } else {
+                return a === b;
+            }
         }
     };
 })(window, location, document);
