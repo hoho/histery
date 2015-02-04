@@ -1,5 +1,5 @@
 /*!
- * Histery.js v0.7.5, https://github.com/hoho/histery
+ * Histery.js v0.7.6, https://github.com/hoho/histery
  * (c) 2013-2014 Marat Abdullin, MIT license
  */
 (function(window, location, document, undefined) {
@@ -151,7 +151,7 @@
             addEventListener('popstate', handler);
             addEventListener('hashchange', handler);
 
-            event.initEvent('popstate', true, false);
+            event.initEvent('popstate', true, true);
             /* global dispatchEvent */
             dispatchEvent(event);
 

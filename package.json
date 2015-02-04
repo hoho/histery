@@ -1,7 +1,7 @@
 {
     "name": "histery",
     "title": "Histery.js",
-    "version": "0.7.5",
+    "version": "0.7.6",
     "description": "Single page app history handler",
     "main": "histery.js",
     "directories": {
