@@ -20,12 +20,30 @@ module.exports = function(grunt) {
         },
 
         qunit: {
-            all: {
+            global: {
                 options: {
                     urls: [
                         'http://localhost:3000/',
                         'http://localhost:3000/types/?hello=world#great',
                         'http://localhost:3000/dry'
+                    ]
+                }
+            },
+            amd: {
+                options: {
+                    urls: [
+                        'http://localhost:3001/',
+                        'http://localhost:3001/types/?hello=world#great',
+                        'http://localhost:3001/dry'
+                    ]
+                }
+            },
+            common: {
+                options: {
+                    urls: [
+                        'http://localhost:3002/',
+                        'http://localhost:3002/types/?hello=world#great',
+                        'http://localhost:3002/dry'
                     ]
                 }
             }
@@ -40,29 +58,49 @@ module.exports = function(grunt) {
         var http = require('http'),
             fs = require('fs'),
             routes = {
-                '/': 'test/index.html',
                 '/qunit.css': 'node_modules/qunitjs/qunit/qunit.css',
                 '/qunit.js': 'node_modules/qunitjs/qunit/qunit.js',
                 '/histery.js': 'histery.js',
+                '/histery.min.js': 'histery.min.js',
                 '/test.js': 'test/test.js',
                 '/test2.js': 'test/test2.js',
                 '/test3.js': 'test/test3.js',
-                '/types/?hello=world': 'test/index2.html',
-                '/dry': 'test/index3.html'
             };
 
-        http.createServer(function serve(req, res) {
-            var file = routes[req.url];
+        startServer(3000, {
+            '/global.js': 'test/global.js',
+            '/': 'test/index.html',
+            '/types/?hello=world': 'test/index2.html',
+            '/dry': 'test/index3.html'
+        });
+        startServer(3001, {
+            '/amd.js': 'test/amd.js',
+            '/': 'test/index.amd.html',
+            '/types/?hello=world': 'test/index2.amd.html',
+            '/dry': 'test/index3.amd.html'
+        });
+        startServer(3002, {
+            '/commonjs.js': 'test/commonjs.js',
+            '/': 'test/index.commonjs.html',
+            '/types/?hello=world': 'test/index2.commonjs.html',
+            '/dry': 'test/index3.commonjs.html'
+        });
 
-            if (file) {
-                fs.createReadStream(file).pipe(res);
-            } else {
-                res.statusCode = 404;
-                res.end();
-            }
-        }).listen(3000, 'localhost');
+        function startServer(port, moreRoutes) {
+            var r = Object.assign({}, routes, moreRoutes);
+            http.createServer(function serve(req, res) {
+                var file = r[req.url];
 
-        grunt.log.writeln('Listening on port 3000');
+                if (file) {
+                    fs.createReadStream(file).pipe(res);
+                } else {
+                    res.statusCode = 404;
+                    res.end();
+                }
+            }).listen(port, 'localhost');
+
+            grunt.log.writeln('Listening on port ' + port);
+        }
     });
 
     grunt.registerTask('wait', function() {
