@@ -4,13 +4,8 @@ module.exports = function(grunt) {
     grunt.initConfig({
         pkg: grunt.file.readJSON('package.json'),
 
-        jshint: {
-            all: {
-                src: ['histery.js', 'Gruntfile.js'],
-                options: {
-                    jshintrc: '.jshintrc'
-                }
-            }
+        eslint: {
+            target: ['histery.js', 'Gruntfile.js']
         },
 
         uglify: {
@@ -37,7 +32,7 @@ module.exports = function(grunt) {
         }
     });
 
-    grunt.loadNpmTasks('grunt-contrib-jshint');
+    grunt.loadNpmTasks('grunt-eslint');
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-qunit');
 
@@ -91,5 +86,5 @@ module.exports = function(grunt) {
 
     grunt.registerTask('test', ['testInit', 'qunit']);
     grunt.registerTask('serve', ['testInit', 'wait']);
-    grunt.registerTask('default', ['jshint', 'assert-version', 'uglify', 'test']);
+    grunt.registerTask('default', ['eslint', 'assert-version', 'uglify', 'test']);
 };

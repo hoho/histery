@@ -1,7 +1,7 @@
 {
     "name": "histery",
     "title": "Histery.js",
-    "version": "0.7.6",
+    "version": "0.8.0",
     "description": "Single page app history handler",
     "main": "histery.js",
     "directories": {
@@ -25,11 +25,11 @@
     },
     "dependencies": {},
     "devDependencies": {
+        "assert-version": "~0.0.3",
         "grunt": "~1.0.1",
-        "grunt-contrib-jshint": "~1.1.0",
         "grunt-contrib-qunit": "~2.0.0",
         "grunt-contrib-uglify": "~2.3.0",
-        "qunitjs": "~2.3.1",
-        "assert-version": "~0.0.3"
+        "grunt-eslint": "~19.0.0",
+        "qunitjs": "~2.3.1"
     }
 }
