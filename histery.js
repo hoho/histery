@@ -62,7 +62,6 @@
             addEventListener('hashchange', handler);
 
             event.initEvent('popstate', true, true);
-            /* global dispatchEvent */
             dispatchEvent(event);
 
             return $H;
