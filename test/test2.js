@@ -1,4 +1,4 @@
-test('Types test', function() {
+QUnit.test('Types test', function(assert) {
     var testResult = [],
         go = {go: function() { testResult.push(Array.prototype.slice.call(arguments, 0)); }},
         goRet;
@@ -53,7 +53,7 @@ test('Types test', function() {
 
     $H.run();
 
-    deepEqual(testResult, [
+    assert.deepEqual(testResult, [
         'Pathname: /types/',
         [false, '/types/?hello=world#great'],
         [false, '/types/?hello=world#great', 'y', 'e'],
@@ -69,8 +69,8 @@ test('Types test', function() {
 
     goRet = $H.go('/types/');
 
-    deepEqual(goRet, true);
-    deepEqual(testResult, [
+    assert.deepEqual(goRet, true);
+    assert.deepEqual(testResult, [
         'Pathname: /types/',
         [true, '/types/', 'y', 'e'],
         [true, '/types/', 'a', 1],
@@ -81,8 +81,8 @@ test('Types test', function() {
 
     goRet = $H.go('/types/');
 
-    deepEqual(goRet, true);
-    deepEqual(testResult, [
+    assert.deepEqual(goRet, true);
+    assert.deepEqual(testResult, [
         'Pathname: /types/',
         [true, '/types/', 'y', 'e'],
         [true, '/types/', 'a', 1],

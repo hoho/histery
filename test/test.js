@@ -1,13 +1,15 @@
-asyncTest('General test', function() {
+QUnit.test('General test', function(assert) {
+    var done = assert.async();
+
     var testResult,
         goRet;
 
-    deepEqual($H.eq(
+    assert.deepEqual($H.eq(
         {aa: 11, bb: "22", cc: true, dd: null, ee: [1, 2, 3], ff: {xxx: 1, zzz: 2}},
         {aa: 11, bb: "22", cc: true, dd: null, ee: [1, 2, 3], ff: {xxx: 1, zzz: 2}}
     ), true);
 
-    deepEqual($H.eq(
+    assert.deepEqual($H.eq(
         {},
         []
     ), false);
@@ -99,7 +101,7 @@ asyncTest('General test', function() {
     $H.run();
     $H.state('page1', true);
 
-    deepEqual(testResult, [
+    assert.deepEqual(testResult, [
         'go2: sameMatch: false, href: /',
         'done: /'
     ]);
@@ -108,8 +110,8 @@ asyncTest('General test', function() {
     goRet = $H.go('/test?param=pppp#bababebe');
     $H.state('page2', {page2: true});
 
-    deepEqual(goRet, true);
-    deepEqual(testResult, [
+    assert.deepEqual(goRet, true);
+    assert.deepEqual(testResult, [
         'leave2: sameMatch: false, href: /',
         'go3: sameMatch: false, href: /test?param=pppp#bababebe, rem1: test, rem2: pppp, rem3: bebe',
         'done: /test?param=pppp#bababebe'
@@ -118,15 +120,15 @@ asyncTest('General test', function() {
     testResult = [];
     goRet = $H.go('/test?param=pppp#bababebe2');
     $H.state('page21', true);
-    deepEqual(goRet, true);
+    assert.deepEqual(goRet, true);
 
     testResult = [];
     goRet = $H.go('/some/reg/expr');
     $H.state('page3_1', {page3: true});
     $H.state('page3_2', {page3: 'yes'});
 
-    deepEqual(goRet, true);
-    deepEqual(testResult, [
+    assert.deepEqual(goRet, true);
+    assert.deepEqual(testResult, [
         'leave3: sameMatch: false, href: /test?param=pppp#bababebe2, rem1: test, rem2: pppp, rem3: bebe',
         'go1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
         'done: /some/reg/expr'
@@ -136,8 +138,8 @@ asyncTest('General test', function() {
     goRet = $H.go('/ololo/piupiu');
     $H.state('page4', true);
 
-    deepEqual(goRet, true);
-    deepEqual(testResult, [
+    assert.deepEqual(goRet, true);
+    assert.deepEqual(testResult, [
         'leave1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
         'no match: sameMatch: false, href: /ololo/piupiu',
         'no match go: sameMatch: false, href: /ololo/piupiu',
@@ -148,8 +150,8 @@ asyncTest('General test', function() {
     goRet = $H.go('/ololo/piupiu2');
     $H.state('page5', {page5: true});
 
-    deepEqual(goRet, true);
-    deepEqual(testResult, [
+    assert.deepEqual(goRet, true);
+    assert.deepEqual(testResult, [
         'no match leave: sameMatch: true, href: /ololo/piupiu',
         'no match: sameMatch: true, href: /ololo/piupiu2',
         'no match go: sameMatch: true, href: /ololo/piupiu2',
@@ -160,8 +162,8 @@ asyncTest('General test', function() {
     goRet = $H.go('/');
     $H.state('page6', true);
 
-    deepEqual(goRet, true);
-    deepEqual(testResult, [
+    assert.deepEqual(goRet, true);
+    assert.deepEqual(testResult, [
         'no match leave: sameMatch: false, href: /ololo/piupiu2',
         'go2: sameMatch: false, href: /',
         'done: /'
@@ -171,149 +173,144 @@ asyncTest('General test', function() {
     goRet = $H.go('/');
     $H.state('page7', true);
 
-    deepEqual(goRet, true);
-    deepEqual(testResult, [
+    assert.deepEqual(goRet, true);
+    assert.deepEqual(testResult, [
         'leave2: sameMatch: true, href: /',
         'go2: sameMatch: true, href: /',
         'done: /'
     ]);
 
-    deepEqual($H.state('page7'), true);
-    ok($H.state('page6') === undefined);
+    assert.deepEqual($H.state('page7'), true);
+    assert.ok($H.state('page6') === undefined);
 
-    if (!window._phantom) {
-        // Synchronous history.go(-1) doesn't work, so here are a bunch of
-        // setTimeouts.
+    // Synchronous history.go(-1) doesn't work, so here are a bunch of
+    // setTimeouts.
 
-        testResult = [];
+    testResult = [];
 
-        function back(n) {
-            window.history.go(n || -1);
-            return false;
-        }
+    function back(n) {
+        window.history.go(n || -1);
+        return false;
+    }
 
-        function forward(n) {
-            window.history.go(n || 1);
-            return false;
-        }
+    function forward(n) {
+        window.history.go(n || 1);
+        return false;
+    }
 
-        var PAUSE = 500;
+    var PAUSE = 1000;
+    setTimeout(function() {
+        back();
+
         setTimeout(function() {
+            assert.deepEqual($H.state('page6'), true);
+            assert.ok($H.state('page5') === undefined);
+            assert.ok($H.state('page7') === undefined);
+
+            assert.deepEqual(testResult, [
+                'leave2: sameMatch: true, href: /',
+                'go2: sameMatch: true, href: /',
+                'done: /'
+            ]);
+            testResult = [];
+
             back();
 
             setTimeout(function() {
-                deepEqual($H.state('page6'), true);
-                ok($H.state('page5') === undefined);
-                ok($H.state('page7') === undefined);
+                assert.deepEqual($H.state('page5'), {page5: true});
+                assert.ok($H.state('page4') === undefined);
+                assert.ok($H.state('page6') === undefined);
 
-                deepEqual(testResult, [
-                    'leave2: sameMatch: true, href: /',
-                    'go2: sameMatch: true, href: /',
-                    'done: /'
+                assert.deepEqual(testResult, [
+                    'leave2: sameMatch: false, href: /',
+                    'no match: sameMatch: false, href: /ololo/piupiu2',
+                    'no match go: sameMatch: false, href: /ololo/piupiu2',
+                    'done: /ololo/piupiu2'
                 ]);
                 testResult = [];
 
-                back();
+                back(-2);
 
                 setTimeout(function() {
-                    deepEqual($H.state('page5'), {page5: true});
-                    ok($H.state('page4') === undefined);
-                    ok($H.state('page6') === undefined);
+                    assert.deepEqual($H.state('page3_1'), {page3: true});
+                    assert.deepEqual($H.state('page3_2'), {page3: 'yes'});
+                    assert.ok($H.state('page2') === undefined);
+                    assert.ok($H.state('page4') === undefined);
 
-                    deepEqual(testResult, [
-                        'leave2: sameMatch: false, href: /',
-                        'no match: sameMatch: false, href: /ololo/piupiu2',
-                        'no match go: sameMatch: false, href: /ololo/piupiu2',
-                        'done: /ololo/piupiu2'
+                    assert.deepEqual(testResult, [
+                        'no match leave: sameMatch: false, href: /ololo/piupiu2',
+                        'go1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
+                        'done: /some/reg/expr'
                     ]);
                     testResult = [];
 
-                    back(-2);
+                    back(-3);
 
                     setTimeout(function() {
-                        deepEqual($H.state('page3_1'), {page3: true});
-                        deepEqual($H.state('page3_2'), {page3: 'yes'});
-                        ok($H.state('page2') === undefined);
-                        ok($H.state('page4') === undefined);
+                        assert.deepEqual($H.state('page1'), true);
+                        assert.ok($H.state('page3_1') === undefined);
+                        assert.ok($H.state('page2') === undefined);
 
-                        deepEqual(testResult, [
-                            'no match leave: sameMatch: false, href: /ololo/piupiu2',
-                            'go1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
-                            'done: /some/reg/expr'
+                        assert.deepEqual(testResult, [
+                            'leave1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
+                            'go2: sameMatch: false, href: /',
+                            'done: /'
                         ]);
                         testResult = [];
 
-                        back(-3);
+                        forward(7);
 
                         setTimeout(function() {
-                            deepEqual($H.state('page1'), true);
-                            ok($H.state('page3_1') === undefined);
-                            ok($H.state('page2') === undefined);
+                            assert.deepEqual($H.state('page7'), true);
+                            assert.ok($H.state('page1') === undefined);
 
-                            deepEqual(testResult, [
-                                'leave1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
-                                'go2: sameMatch: false, href: /',
+                            assert.deepEqual(testResult, [
+                                'leave2: sameMatch: true, href: /',
+                                'go2: sameMatch: true, href: /',
                                 'done: /'
                             ]);
                             testResult = [];
 
-                            forward(7);
+                            goRet = $H.go('/some/reg/expr');
+
+                            assert.deepEqual(goRet, true);
+                            assert.deepEqual(testResult, [
+                                'leave2: sameMatch: false, href: /',
+                                'go1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
+                                'done: /some/reg/expr'
+                            ]);
+                            testResult = [];
+
+                            // Replace current history item.
+                            goRet = $H.go('/test?param=pppp#bababebe', false, true);
+
+                            assert.deepEqual(goRet, true);
+                            assert.deepEqual(testResult, [
+                                'leave1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
+                                'go3: sameMatch: false, href: /test?param=pppp#bababebe, rem1: test, rem2: pppp, rem3: bebe',
+                                'done: /test?param=pppp#bababebe'
+                            ]);
+                            testResult = [];
+
+                            back();
 
                             setTimeout(function() {
-                                deepEqual($H.state('page7'), true);
-                                ok($H.state('page1') === undefined);
+                                assert.deepEqual($H.state('page7'), true);
+                                assert.ok($H.state('page1') === undefined);
 
-                                deepEqual(testResult, [
-                                    'leave2: sameMatch: true, href: /',
-                                    'go2: sameMatch: true, href: /',
+                                assert.deepEqual(testResult, [
+                                    'leave3: sameMatch: false, href: /test?param=pppp#bababebe, rem1: test, rem2: pppp, rem3: bebe',
+                                    'go2: sameMatch: false, href: /',
                                     'done: /'
                                 ]);
                                 testResult = [];
 
-                                goRet = $H.go('/some/reg/expr');
-
-                                deepEqual(goRet, true);
-                                deepEqual(testResult, [
-                                    'leave2: sameMatch: false, href: /',
-                                    'go1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
-                                    'done: /some/reg/expr'
-                                ]);
-                                testResult = [];
-
-                                // Replace current history item.
-                                goRet = $H.go('/test?param=pppp#bababebe', false, true);
-
-                                deepEqual(goRet, true);
-                                deepEqual(testResult, [
-                                    'leave1: sameMatch: false, href: /some/reg/expr, rem1: reg, rem2: expr',
-                                    'go3: sameMatch: false, href: /test?param=pppp#bababebe, rem1: test, rem2: pppp, rem3: bebe',
-                                    'done: /test?param=pppp#bababebe'
-                                ]);
-                                testResult = [];
-
-                                back();
-
-                                setTimeout(function() {
-                                    deepEqual($H.state('page7'), true);
-                                    ok($H.state('page1') === undefined);
-
-                                    deepEqual(testResult, [
-                                        'leave3: sameMatch: false, href: /test?param=pppp#bababebe, rem1: test, rem2: pppp, rem3: bebe',
-                                        'go2: sameMatch: false, href: /',
-                                        'done: /'
-                                    ]);
-                                    testResult = [];
-
-                                    start();
-                                }, PAUSE);
+                                done();
                             }, PAUSE);
                         }, PAUSE);
                     }, PAUSE);
                 }, PAUSE);
             }, PAUSE);
         }, PAUSE);
-    } else {
-        console.log('WARNING: History navigation is broken in PhantomJS, run tests in browser to test state');
-        start();
-    }
+    }, PAUSE);
 });
