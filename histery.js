@@ -1,5 +1,5 @@
 /*!
- * Histery.js v0.8.0, https://github.com/hoho/histery
+ * Histery.js v0.8.1, https://github.com/hoho/histery
  * (c) 2013-2017 Marat Abdullin, MIT license
  */
 (function(factory, e, undef) {

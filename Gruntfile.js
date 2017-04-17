@@ -19,6 +19,17 @@ module.exports = function(grunt) {
             }
         },
 
+        ts: {
+            tests: {
+                src: ['test/test*.ts'],
+                outDir: 'test/build',
+                options: {
+                    target: 'es6',
+                    verbose: true
+                }
+            }
+        },
+
         qunit: {
             global: {
                 options: {
@@ -52,6 +63,7 @@ module.exports = function(grunt) {
 
     grunt.loadNpmTasks('grunt-eslint');
     grunt.loadNpmTasks('grunt-contrib-uglify');
+    grunt.loadNpmTasks('grunt-ts');
     grunt.loadNpmTasks('grunt-contrib-qunit');
 
     grunt.registerTask('testInit', function() {
@@ -62,9 +74,9 @@ module.exports = function(grunt) {
                 '/qunit.js': 'node_modules/qunitjs/qunit/qunit.js',
                 '/histery.js': 'histery.js',
                 '/histery.min.js': 'histery.min.js',
-                '/test.js': 'test/test.js',
-                '/test2.js': 'test/test2.js',
-                '/test3.js': 'test/test3.js',
+                '/test.js': 'test/build/test.js',
+                '/test2.js': 'test/build/test2.js',
+                '/test3.js': 'test/build/test3.js',
             };
 
         startServer(3000, {
@@ -113,6 +125,7 @@ module.exports = function(grunt) {
 
         error = assertVersion({
             'histery.js': '',
+            'histery.d.ts': '',
             'bower.json': ''
         });
 
@@ -122,7 +135,7 @@ module.exports = function(grunt) {
         }
     });
 
-    grunt.registerTask('test', ['testInit', 'qunit']);
-    grunt.registerTask('serve', ['testInit', 'wait']);
+    grunt.registerTask('test', ['ts', 'testInit', 'qunit']);
+    grunt.registerTask('serve', ['ts', 'testInit', 'wait']);
     grunt.registerTask('default', ['eslint', 'assert-version', 'uglify', 'test']);
 };

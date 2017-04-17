@@ -1,3 +1,10 @@
+import { $H } from '../histery';
+
+declare function getHistery(): typeof $H;
+declare module QUnit {
+    function test(...args);
+};
+
 function runTests() {
     var $H = getHistery();
 
@@ -191,7 +198,7 @@ function runTests() {
 
         testResult = [];
 
-        function back(n) {
+        function back(n?: number) {
             window.history.go(n || -1);
             return false;
         }

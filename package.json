@@ -1,35 +1,38 @@
 {
-    "name": "histery",
-    "title": "Histery.js",
-    "version": "0.8.0",
-    "description": "Single page app history handler",
-    "main": "histery.js",
-    "directories": {
-        "test": "test"
-    },
-    "scripts": {
-        "test": "grunt"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git://github.com/hoho/histery.git"
-    },
-    "keywords": [
-        "browser",
-        "history"
-    ],
-    "author": "Marat Abdullin <dakota@brokenpipe.ru>",
-    "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/hoho/histery/issues"
-    },
-    "dependencies": {},
-    "devDependencies": {
-        "assert-version": "~0.0.3",
-        "grunt": "~1.0.1",
-        "grunt-contrib-qunit": "~2.0.0",
-        "grunt-contrib-uglify": "~2.3.0",
-        "grunt-eslint": "~19.0.0",
-        "qunitjs": "~2.3.1"
-    }
+  "name": "histery",
+  "title": "Histery.js",
+  "version": "0.8.1",
+  "description": "Single page app history handler",
+  "main": "histery.js",
+  "types": "histery.d.ts",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "grunt"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/hoho/histery.git"
+  },
+  "keywords": [
+    "browser",
+    "history"
+  ],
+  "author": "Marat Abdullin <dakota@brokenpipe.ru>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hoho/histery/issues"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "assert-version": "~0.0.3",
+    "grunt": "~1.0.1",
+    "grunt-contrib-qunit": "~2.0.0",
+    "grunt-contrib-uglify": "~2.3.0",
+    "grunt-eslint": "~19.0.0",
+    "grunt-ts": "~5.5.1",
+    "qunitjs": "~2.3.1",
+    "typescript": "~2.2.2"
+  }
 }
